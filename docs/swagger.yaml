@@ -1,0 +1,629 @@
+definitions:
+  account.LoginRequest:
+    properties:
+      password:
+        description: Password to the account.
+        example: "123456"
+        type: string
+      user_id:
+        description: ID of the post in UUIDv4 format.
+        example: bbeb7da8-6d75-4419-9d94-91ec52bc506c
+        type: string
+    required:
+    - password
+    - user_id
+    type: object
+  account.LoginResponse:
+    properties:
+      token:
+        description: Authorization token to the account (JWT).
+        type: string
+    type: object
+  account.RegisterRequest:
+    properties:
+      biography:
+        description: Biography of the user.
+        example: Software developer
+        type: string
+      birthdate:
+        description: Birthday in the format "1990-12-31".
+        example: "1990-01-01"
+        type: string
+      city:
+        description: City of the user.
+        example: New York
+        type: string
+      first_name:
+        description: First name of the user.
+        example: John
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/common.Gender'
+        description: Gender of the user ("Male" or "Female").
+        example: Male
+      password:
+        description: Password to the account.
+        example: "123456"
+        type: string
+      second_name:
+        description: Second name of the user.
+        example: Doe
+        type: string
+    required:
+    - biography
+    - birthdate
+    - city
+    - first_name
+    - gender
+    - password
+    - second_name
+    type: object
+  account.RegisterResponse:
+    properties:
+      user_id:
+        description: ID of the user in UUIDv4 format.
+        example: bbeb7da8-6d75-4419-9d94-91ec52bc506c
+        type: string
+    type: object
+  common.Gender:
+    enum:
+    - Male
+    - Female
+    type: string
+    x-enum-varnames:
+    - GenderMale
+    - GenderFemale
+  dialog.GetMessagesResponse:
+    properties:
+      messages:
+        description: List of messages.
+        items:
+          $ref: '#/definitions/dialog.GetMessagesResponseItem'
+        type: array
+    type: object
+  dialog.GetMessagesResponseItem:
+    properties:
+      from:
+        description: ID of the message sender in UUIDv4 format.
+        type: string
+      text:
+        description: Content of the message.
+        type: string
+      to:
+        description: ID of the message recipient in UUIDv4 format.
+        type: string
+    type: object
+  dialog.SendMessageRequest:
+    properties:
+      text:
+        description: Content of the message.
+        type: string
+    required:
+    - text
+    type: object
+  post.CreatePostRequest:
+    properties:
+      text:
+        description: Content of the post.
+        type: string
+    required:
+    - text
+    type: object
+  post.CreatePostResponse:
+    properties:
+      postId:
+        description: ID of the post in UUIDv4 format.
+        type: string
+    type: object
+  post.GetPostResponse:
+    properties:
+      authorUserId:
+        description: User ID of the post author in UUIDv4 format.
+        type: string
+      postId:
+        description: ID of the post in UUIDv4 format.
+        type: string
+      text:
+        description: Content of the post.
+        type: string
+    type: object
+  post.ReadFeedResponse:
+    properties:
+      posts:
+        description: List of posts.
+        items:
+          $ref: '#/definitions/post.ReadFeedResponseItem'
+        type: array
+    type: object
+  post.ReadFeedResponseItem:
+    properties:
+      authorUserId:
+        description: User ID of the post author in UUIDv4 format.
+        type: string
+      postId:
+        description: ID of the post in UUIDv4 format.
+        type: string
+      text:
+        description: Content of the post.
+        type: string
+    type: object
+  post.UpdatePostRequest:
+    properties:
+      postId:
+        description: ID of the post in UUIDv4 format.
+        type: string
+      text:
+        description: Content of the message.
+        type: string
+    required:
+    - postId
+    - text
+    type: object
+  user.GetUserResponse:
+    properties:
+      biography:
+        description: Biography of the user.
+        example: Software developer
+        type: string
+      birthdate:
+        description: Birthday in the format "1990-12-31".
+        example: "1990-01-01"
+        type: string
+      city:
+        description: City of the user.
+        example: New York
+        type: string
+      first_name:
+        description: First name of the user.
+        example: John
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/common.Gender'
+        description: Gender of the user ("Male" or "Female").
+        example: Male
+      second_name:
+        description: Second name of the user.
+        example: Doe
+        type: string
+      user_id:
+        description: ID of the user in UUIDv4 format.
+        example: bbeb7da8-6d75-4419-9d94-91ec52bc506c
+        type: string
+    type: object
+  user.SearchUsersResponse:
+    properties:
+      users:
+        description: List of found users.
+        items:
+          $ref: '#/definitions/user.SearchUsersResponseItem'
+        type: array
+    type: object
+  user.SearchUsersResponseItem:
+    properties:
+      biography:
+        description: Biography of the user.
+        example: Software developer
+        type: string
+      birthdate:
+        description: Birthday in the format "1990-12-31".
+        example: "1990-01-01"
+        type: string
+      city:
+        description: City of the user.
+        example: New York
+        type: string
+      first_name:
+        description: First name of the user.
+        example: John
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/common.Gender'
+        description: Gender of the user ("Male" or "Female").
+        example: Male
+      second_name:
+        description: Second name of the user.
+        example: Doe
+        type: string
+      user_id:
+        description: ID of the user in UUIDv4 format.
+        example: bbeb7da8-6d75-4419-9d94-91ec52bc506c
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /dialog/{id}/list:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dialog.GetMessagesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns messages.
+      tags:
+      - Dialog
+  /dialog/{id}/send:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dialog.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Sends a message.
+      tags:
+      - Dialog
+  /friend/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Removes specified friend.
+      tags:
+      - User
+  /friend/set/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Adds a friend.
+      tags:
+      - User
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+      summary: Sign in using user ID.
+      tags:
+      - Account
+  /post/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/post.CreatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/post.CreatePostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Creates a post.
+      tags:
+      - Post
+  /post/delete/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Deletes specified post.
+      tags:
+      - Post
+  /post/feed:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: query
+        name: offset
+        type: integer
+      - description: ' '
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/post.ReadFeedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns posts.
+      tags:
+      - Post
+  /post/get/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/post.GetPostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns specified post.
+      tags:
+      - Post
+  /post/update:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/post.UpdatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Updates specified post.
+      tags:
+      - Post
+  /user/get/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      summary: Returns user by ID.
+      tags:
+      - User
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+      summary: Registers a new user.
+      tags:
+      - Account
+  /user/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: query
+        name: first_name
+        type: string
+      - description: ' '
+        in: query
+        name: second_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.SearchUsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+      summary: Returns found users.
+      tags:
+      - User
+securityDefinitions:
+  bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

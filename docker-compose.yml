@@ -1,0 +1,16 @@
+version: "3.3"
+
+networks:
+  net:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: social_network_db
+    ports:
+      - "5432:5432"
