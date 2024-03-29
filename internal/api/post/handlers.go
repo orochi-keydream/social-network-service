@@ -9,16 +9,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterPostEndpoints(service common.PostService, jwtService common.JwtService, e *gin.Engine) *gin.RouterGroup {
+func RegisterPostEndpoints(service common.PostService, jwtService common.JwtService, e *gin.Engine, mw func(*gin.Context)) {
 	postRouter := e.Group("/post")
+
+	postRouter.Use(mw)
 
 	postRouter.POST("/create", NewCreatePostHandler(service, jwtService))
 	postRouter.PUT("/update", NewUpdatePostHandler(service, jwtService))
 	postRouter.PUT("/delete/:id", NewDeletePostHandler(service, jwtService))
 	postRouter.GET("/get/:id", NewGetPostHandler(service))
 	postRouter.GET("/feed", NewReadFeedHandler(service, jwtService))
-
-	return postRouter
 }
 
 // @Summary Creates a post.

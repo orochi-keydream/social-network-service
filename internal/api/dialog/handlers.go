@@ -3,18 +3,19 @@ package dialog
 import (
 	"net/http"
 	"social-network-service/internal/api/common"
+	"social-network-service/internal/middleware"
 	"social-network-service/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterDialogEndpoints(service common.DialogService, jwtService common.JwtService, e *gin.Engine) *gin.RouterGroup {
+func RegisterDialogEndpoints(service common.DialogService, jwtService common.JwtService, e *gin.Engine, auth middleware.AuthMiddleware) {
 	dialogRouter := e.Group("/dialog")
+
+	dialogRouter.Use(gin.HandlerFunc(auth))
 
 	dialogRouter.POST("/:id/send", NewSendMessageHandler(service, jwtService))
 	dialogRouter.GET("/:id/list", NewGetMessagesHandler(service, jwtService))
-
-	return dialogRouter
 }
 
 // @Summary Returns messages.
