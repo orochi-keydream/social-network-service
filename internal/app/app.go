@@ -64,9 +64,10 @@ func Run() {
 
 	engine := gin.Default()
 
-	engine.Use(middleware.ErrorHandlingMiddleware)
-
+	errorHandlingMiddleware := middleware.NewErrorHandlingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+
+	engine.Use(errorHandlingMiddleware)
 
 	// TODO: Improve working with endpoints.
 	_ = account.RegisterAccountEndpoints(appService, engine)

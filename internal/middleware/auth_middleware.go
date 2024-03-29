@@ -10,7 +10,7 @@ type JwtService interface {
 	CheckAccess(c *gin.Context) (model.UserId, error)
 }
 
-func NewAuthMiddleware(jwtService JwtService) func(*gin.Context) {
+func NewAuthMiddleware(jwtService JwtService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, err := jwtService.CheckAccess(c)
 
