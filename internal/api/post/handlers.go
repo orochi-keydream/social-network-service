@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterPostEndpoints(service common.PostService, jwtService common.JwtService, e *gin.Engine) gin.RouterGroup {
+func RegisterPostEndpoints(service common.PostService, jwtService common.JwtService, e *gin.Engine) *gin.RouterGroup {
 	postRouter := e.Group("/post")
 
 	postRouter.POST("/create", NewCreatePostHandler(service, jwtService))
@@ -18,7 +18,7 @@ func RegisterPostEndpoints(service common.PostService, jwtService common.JwtServ
 	postRouter.GET("/get/:id", NewGetPostHandler(service))
 	postRouter.GET("/feed", NewReadFeedHandler(service, jwtService))
 
-	return *postRouter
+	return postRouter
 }
 
 // @Summary Creates a post.

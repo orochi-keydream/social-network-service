@@ -8,13 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterDialogEndpoints(service common.DialogService, jwtService common.JwtService, e *gin.Engine) gin.RouterGroup {
+func RegisterDialogEndpoints(service common.DialogService, jwtService common.JwtService, e *gin.Engine) *gin.RouterGroup {
 	dialogRouter := e.Group("/dialog")
 
 	dialogRouter.POST("/:id/send", NewSendMessageHandler(service, jwtService))
 	dialogRouter.GET("/:id/list", NewGetMessagesHandler(service, jwtService))
 
-	return *dialogRouter
+	return dialogRouter
 }
 
 // @Summary Returns messages.

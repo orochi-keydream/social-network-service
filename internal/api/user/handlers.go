@@ -8,22 +8,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterUserOpenEndpoints(service common.UserService, e *gin.Engine) gin.RouterGroup {
+func RegisterUserOpenEndpoints(service common.UserService, e *gin.Engine) *gin.RouterGroup {
 	userRouter := e.Group("/user")
 
 	userRouter.GET("/get/:id", NewGetUserHandler(service))
 	userRouter.GET("/search", NewSearchUsersHandler(service))
 
-	return *userRouter
+	return userRouter
 }
 
-func RegisterUserClosedEndpoints(service common.UserService, jwtService common.JwtService, e *gin.Engine) gin.RouterGroup {
+func RegisterUserClosedEndpoints(service common.UserService, jwtService common.JwtService, e *gin.Engine) *gin.RouterGroup {
 	userRouter := e.Group("")
 
 	userRouter.PUT("/friend/set/:id", NewAddFriendHandler(service, jwtService))
 	userRouter.PUT("/friend/delete/:id", NewRemoveFriendHandler(service, jwtService))
 
-	return *userRouter
+	return userRouter
 }
 
 // @Summary Returns user by ID.
