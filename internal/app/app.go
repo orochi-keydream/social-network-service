@@ -64,23 +64,15 @@ func Run() {
 
 	engine := gin.Default()
 
-	engine.Use(middleware.ErrorHandlingMiddleware)
-
+	errorHandlingMiddleware := middleware.NewErrorHandlingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
-	// TODO: Improve working with endpoints.
-	_ = account.RegisterAccountEndpoints(appService, engine)
+	engine.Use(errorHandlingMiddleware)
 
-	_ = user.RegisterUserOpenEndpoints(appService, engine)
-
-	userRouter := user.RegisterUserClosedEndpoints(appService, jwtService, engine)
-	userRouter.Use(authMiddleware)
-
-	postRouter := post.RegisterPostEndpoints(appService, jwtService, engine)
-	postRouter.Use(authMiddleware)
-
-	dialogRouter := dialog.RegisterDialogEndpoints(appService, jwtService, engine)
-	dialogRouter.Use(authMiddleware)
+	account.RegisterAccountEndpoints(appService, engine)
+	user.RegisterUserClosedEndpoints(appService, jwtService, engine, authMiddleware)
+	post.RegisterPostEndpoints(appService, jwtService, engine, authMiddleware)
+	dialog.RegisterDialogEndpoints(appService, jwtService, engine, authMiddleware)
 
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

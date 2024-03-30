@@ -8,13 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterAccountEndpoints(service common.AccountService, e *gin.Engine) gin.RouterGroup {
+func RegisterAccountEndpoints(service common.AccountService, e *gin.Engine) {
 	accountRouter := e.Group("")
 
 	accountRouter.POST("/login", NewLoginHandler(service))
 	accountRouter.POST("/user/register", NewRegisterHandler(service))
-
-	return *accountRouter
 }
 
 // @Summary Sign in using user ID.

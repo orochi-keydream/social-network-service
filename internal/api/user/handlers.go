@@ -3,27 +3,24 @@ package user
 import (
 	"net/http"
 	"social-network-service/internal/api/common"
+	"social-network-service/internal/middleware"
 	"social-network-service/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterUserOpenEndpoints(service common.UserService, e *gin.Engine) gin.RouterGroup {
-	userRouter := e.Group("/user")
+func RegisterUserClosedEndpoints(service common.UserService, jwtService common.JwtService, e *gin.Engine, auth middleware.AuthMiddleware) {
+	userRouterOpen := e.Group("")
 
-	userRouter.GET("/get/:id", NewGetUserHandler(service))
-	userRouter.GET("/search", NewSearchUsersHandler(service))
+	userRouterOpen.GET("/user/get/:id", NewGetUserHandler(service))
+	userRouterOpen.GET("/user/search", NewSearchUsersHandler(service))
 
-	return *userRouter
-}
+	userRouterClosed := e.Group("")
 
-func RegisterUserClosedEndpoints(service common.UserService, jwtService common.JwtService, e *gin.Engine) gin.RouterGroup {
-	userRouter := e.Group("")
+	userRouterClosed.Use(gin.HandlerFunc(auth))
 
-	userRouter.PUT("/friend/set/:id", NewAddFriendHandler(service, jwtService))
-	userRouter.PUT("/friend/delete/:id", NewRemoveFriendHandler(service, jwtService))
-
-	return *userRouter
+	userRouterClosed.PUT("/friend/set/:id", NewAddFriendHandler(service, jwtService))
+	userRouterClosed.PUT("/friend/delete/:id", NewRemoveFriendHandler(service, jwtService))
 }
 
 // @Summary Returns user by ID.
