@@ -1,10 +1,9 @@
 # social-network-service
 
-- [social-network-service](#social-network-service)
-  - [Prerequesites](#prerequesites)
-  - [Get started](#get-started)
+* [Prerequisites](#prerequisites)
+* [Get started](#get-started)
 
-## Prerequesites
+## Prerequisites
 
 * [Go](https://go.dev/) (`v1.22` or later)
 * [Docker](https://www.docker.com/)
