@@ -115,13 +115,13 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 	if firstName != "" {
 		params = append(params, firstName+"%")
 		paramNumber++
-		b.WriteString(fmt.Sprintf(" and upper(first_name) like upper($%v)", paramNumber))
+		b.WriteString(fmt.Sprintf(" and first_name like $%v", paramNumber))
 	}
 
 	if secondName != "" {
 		params = append(params, secondName+"%")
 		paramNumber++
-		b.WriteString(fmt.Sprintf(" and upper(second_name) like upper($%v)", paramNumber))
+		b.WriteString(fmt.Sprintf(" and second_name like $%v", paramNumber))
 	}
 
 	var ec ExecutionContext
