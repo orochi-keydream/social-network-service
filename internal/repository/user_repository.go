@@ -124,7 +124,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 		b.WriteString(fmt.Sprintf(" and second_name like $%v", paramNumber))
 	}
 
-	b.WriteString(" order by user_id")
+	b.WriteString(" order by user_id limit 20")
 
 	var ec ExecutionContext
 
