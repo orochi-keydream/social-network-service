@@ -1,6 +1,10 @@
 .PHONY: run
 run:
-	go run ./cmd/main.go
+	go run ./cmd/app/main.go
+
+.PHONY: gen-profiles
+gen-profiles:
+	go run ./cmd/gen-profiles/main.go
 
 .PHONY: compose-up
 compose-up:
