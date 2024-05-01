@@ -193,17 +193,16 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 	params := []any{}
 	paramNumber := 0
 
-	// TODO: Think about more efficient way to search text.
 	if firstName != "" {
-		params = append(params, firstName+"%")
+		params = append(params, firstName)
 		paramNumber++
-		b.WriteString(fmt.Sprintf(" and first_name like $%v", paramNumber))
+		b.WriteString(fmt.Sprintf(" and first_name_tsvector @@ to_tsquery('simple', $%v || ':*')", paramNumber))
 	}
 
 	if secondName != "" {
-		params = append(params, secondName+"%")
+		params = append(params, secondName)
 		paramNumber++
-		b.WriteString(fmt.Sprintf(" and second_name like $%v", paramNumber))
+		b.WriteString(fmt.Sprintf(" and second_name_tsvector @@ to_tsquery('simple', $%v || ':*')", paramNumber))
 	}
 
 	b.WriteString(" order by user_id limit 20")
