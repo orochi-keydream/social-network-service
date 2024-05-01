@@ -7,6 +7,8 @@ import (
 	"social-network-service/internal/model"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgtype"
 )
 
 type UserDto struct {
@@ -52,6 +54,86 @@ func (r *UserRepository) Add(ctx context.Context, user *model.User, tx *sql.Tx) 
 
 	// TODO: Check how we can pass 'user'.
 	_, err := ec.ExecContext(ctx, query, dto.UserId, dto.FirstName, dto.SecondName, dto.Gender, dto.Birthday, dto.Biography, dto.City)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *sql.Tx) error {
+	const query = `
+	insert into users
+	(
+		user_id,
+		first_name,
+		second_name,
+		gender,
+		birthday,
+		biography,
+		city)
+	select * from unnest
+	(
+		$1::text[],
+		$2::text[],
+		$3::text[],
+		$4::integer[],
+		$5::date[],
+		$6::text[],
+		$7::text[]
+	)`
+
+	var ec ExecutionContext
+
+	if tx == nil {
+		ec = r.db
+	} else {
+		ec = tx
+	}
+
+	count := len(users)
+
+	userIds := make([]string, count)
+	firstNames := make([]string, count)
+	secondNames := make([]string, count)
+	genders := make([]int, count)
+	birthdates := make([]time.Time, count)
+	biographies := make([]string, count)
+	cities := make([]string, count)
+
+	for i := 0; i < count; i++ {
+		userIds[i] = string(users[i].UserId)
+		firstNames[i] = users[i].FirstName
+		secondNames[i] = users[i].SecondName
+		genders[i] = int(users[i].Gender)
+		birthdates[i] = users[i].Birthdate
+		biographies[i] = users[i].Biography
+		cities[i] = users[i].City
+	}
+
+	pgUserIds := pgtype.TextArray{}
+	pgUserIds.Set(userIds)
+
+	pgFirstNames := pgtype.TextArray{}
+	pgFirstNames.Set(firstNames)
+
+	pgSecondNames := pgtype.TextArray{}
+	pgSecondNames.Set(secondNames)
+
+	pgGenders := pgtype.Int4Array{}
+	pgGenders.Set(genders)
+
+	pgBirthdates := pgtype.DateArray{}
+	pgBirthdates.Set(birthdates)
+
+	pgBiographies := pgtype.TextArray{}
+	pgBiographies.Set(biographies)
+
+	pgCities := pgtype.TextArray{}
+	pgCities.Set(cities)
+
+	_, err := ec.ExecContext(ctx, query, pgUserIds, pgFirstNames, pgSecondNames, pgGenders, pgBirthdates, pgBiographies, pgCities)
 
 	if err != nil {
 		return err

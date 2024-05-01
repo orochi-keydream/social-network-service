@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"social-network-service/internal/model"
+
+	"github.com/jackc/pgtype"
 )
 
 type UserAccountRepository struct {
@@ -28,6 +30,42 @@ func (r *UserAccountRepository) Add(ctx context.Context, account *model.UserAcco
 	}
 
 	_, err := ec.ExecContext(ctx, query, account.UserId, account.PasswordHash)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserAccountRepository) AddBulk(ctx context.Context, accounts []*model.UserAccount, tx *sql.Tx) error {
+	const query = "insert into user_accounts (user_id, password_hash) select * from unnest ($1::text[], $2::text[])"
+
+	var ec ExecutionContext
+
+	if tx == nil {
+		ec = r.db
+	} else {
+		ec = tx
+	}
+
+	count := len(accounts)
+
+	userIds := make([]string, count)
+	passwordHashes := make([]string, count)
+
+	for i := 0; i < count; i++ {
+		userIds[i] = string(accounts[i].UserId)
+		passwordHashes[i] = accounts[i].PasswordHash
+	}
+
+	pgUserIds := pgtype.TextArray{}
+	pgUserIds.Set(userIds)
+
+	pgPasswordHashes := pgtype.TextArray{}
+	pgPasswordHashes.Set(passwordHashes)
+
+	_, err := ec.ExecContext(ctx, query, pgUserIds, pgPasswordHashes)
 
 	if err != nil {
 		return err
