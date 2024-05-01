@@ -32,7 +32,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Add(ctx context.Context, user *model.User, tx *sql.Tx) error {
-	const query = "insert into users (user_id, first_name, second_name, gender, birthday, biography, city) values ($1, $2, $3, $4, $5, $6, $7)"
+	const query = "insert into users (user_id, first_name, second_name, gender, birthday, biography, city, first_name_tsvector, second_name_tsvector) values ($1, $2, $3, $4, $5, $6, $7, to_tsvector('english', $2), to_tsvector('english', $3))"
 
 	var ec ExecutionContext
 
