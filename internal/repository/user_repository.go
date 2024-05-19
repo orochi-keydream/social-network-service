@@ -16,7 +16,7 @@ type UserDto struct {
 	FirstName  string    `db:"first_name"`
 	SecondName string    `db:"second_name"`
 	Gender     int       `db:"gender"`
-	Birthday   time.Time `db:"birthday"`
+	Birthdate  time.Time `db:"birthdate"`
 	Biography  string    `db:"biography"`
 	City       string    `db:"city"`
 }
@@ -32,7 +32,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Add(ctx context.Context, user *model.User, tx *sql.Tx) error {
-	const query = "insert into users (user_id, first_name, second_name, gender, birthday, biography, city, first_name_tsvector, second_name_tsvector) values ($1, $2, $3, $4, $5, $6, $7, to_tsvector('english', $2), to_tsvector('english', $3))"
+	const query = "insert into users (user_id, first_name, second_name, gender, birthdate, biography, city, first_name_tsvector, second_name_tsvector) values ($1, $2, $3, $4, $5, $6, $7, to_tsvector('english', $2), to_tsvector('english', $3))"
 
 	var ec ExecutionContext
 
@@ -47,13 +47,13 @@ func (r *UserRepository) Add(ctx context.Context, user *model.User, tx *sql.Tx) 
 		FirstName:  user.FirstName,
 		SecondName: user.SecondName,
 		Gender:     int(user.Gender),
-		Birthday:   user.Birthdate,
+		Birthdate:  user.Birthdate,
 		Biography:  user.Biography,
 		City:       user.City,
 	}
 
 	// TODO: Check how we can pass 'user'.
-	_, err := ec.ExecContext(ctx, query, dto.UserId, dto.FirstName, dto.SecondName, dto.Gender, dto.Birthday, dto.Biography, dto.City)
+	_, err := ec.ExecContext(ctx, query, dto.UserId, dto.FirstName, dto.SecondName, dto.Gender, dto.Birthdate, dto.Biography, dto.City)
 
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 		first_name,
 		second_name,
 		gender,
-		birthday,
+		birthdate,
 		biography,
 		city)
 	select * from unnest
@@ -143,7 +143,7 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 }
 
 func (r *UserRepository) Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.User, error) {
-	const query = "select user_id, first_name, second_name, gender, birthday, biography, city from users where user_id = $1"
+	const query = "select user_id, first_name, second_name, gender, birthdate, biography, city from users where user_id = $1"
 
 	var ec ExecutionContext
 
@@ -163,7 +163,7 @@ func (r *UserRepository) Get(ctx context.Context, userId model.UserId, tx *sql.T
 
 	var dto UserDto
 
-	err = row.Scan(&dto.UserId, &dto.FirstName, &dto.SecondName, &dto.Gender, &dto.Birthday, &dto.Biography, &dto.City)
+	err = row.Scan(&dto.UserId, &dto.FirstName, &dto.SecondName, &dto.Gender, &dto.Birthdate, &dto.Biography, &dto.City)
 
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (r *UserRepository) Get(ctx context.Context, userId model.UserId, tx *sql.T
 		FirstName:  dto.FirstName,
 		SecondName: dto.SecondName,
 		Gender:     model.Gender(dto.Gender),
-		Birthdate:  dto.Birthday,
+		Birthdate:  dto.Birthdate,
 		Biography:  dto.Biography,
 		City:       dto.City,
 	}
@@ -186,7 +186,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 	var b strings.Builder
 
 	// TODO: Think about how to get rid of 'where 1 = 1'.
-	b.Write([]byte("select user_id, first_name, second_name, gender, birthday, biography, city from users where 1 = 1"))
+	b.Write([]byte("select user_id, first_name, second_name, gender, birthdate, biography, city from users where 1 = 1"))
 
 	// TODO: Think about another way to build the query with optional filters,
 
@@ -230,14 +230,14 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 	for rows.Next() {
 		var dto UserDto
 
-		rows.Scan(&dto.UserId, &dto.FirstName, &dto.SecondName, &dto.Gender, &dto.Birthday, &dto.Biography, &dto.City)
+		rows.Scan(&dto.UserId, &dto.FirstName, &dto.SecondName, &dto.Gender, &dto.Birthdate, &dto.Biography, &dto.City)
 
 		user := model.User{
 			UserId:     model.UserId(dto.UserId),
 			FirstName:  dto.FirstName,
 			SecondName: dto.SecondName,
 			Gender:     model.Gender(dto.Gender),
-			Birthdate:  dto.Birthday,
+			Birthdate:  dto.Birthdate,
 			Biography:  dto.Biography,
 			City:       dto.City,
 		}

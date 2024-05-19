@@ -6,7 +6,7 @@ create table users
     first_name text not null,
     second_name text not null,
     gender int not null,
-    birthday date not null,
+    birthdate date not null,
     biography text not null,
     city text not null
 )
