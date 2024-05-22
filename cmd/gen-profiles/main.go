@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,10 +18,12 @@ import (
 	"time"
 )
 
-const (
-	accountCount = 1_000_000
-	batchSize    = 1_000_000
+var (
+	accountCount = 100_000
+	batchSize    = 10_000
+)
 
+const (
 	maleNamesFilePath   = "../../scripts/male-names.txt"
 	femaleNamesFilePath = "../../scripts/female-names.txt"
 	surnamesFilePath    = "../../scripts/surnames.txt"
@@ -38,7 +40,18 @@ var femaleNames = getFromFile(femaleNamesFilePath)
 var surnames = getFromFile(surnamesFilePath)
 var cities = getFromFile(citiesFilePath)
 
+func init() {
+	flag.IntVar(&accountCount, "count", accountCount, "Number of accounts to be created")
+	flag.IntVar(&batchSize, "batch-size", batchSize, "Size of batches")
+	flag.Parse()
+}
+
 func main() {
+	fmt.Println("Applied settings:")
+	fmt.Println("count:", accountCount)
+	fmt.Println("batch-size:", batchSize)
+	fmt.Println()
+
 	cfCfg := database.ConnectionFactoryConfig{
 		MasterConnectionString: "host=localhost port=15432 user=postgres password=123 dbname=social_network_db",
 		SyncConnectionString:   "host=localhost port=25432 user=postgres password=123 dbname=social_network_db",
@@ -64,29 +77,25 @@ func main() {
 }
 
 func generateUsers(service *admin.AdminService) {
-	current := 0
+	curIdx := 0
 	batches := []batch{}
 
-	for {
-		if current >= accountCount {
-			break
-		}
-
-		if current+batchSize < accountCount {
-			batches = append(batches, batch{startIdx: current, length: batchSize})
+	for curIdx < accountCount {
+		if curIdx+batchSize < accountCount {
+			batches = append(batches, batch{startIdx: curIdx, length: batchSize})
 		} else {
-			batches = append(batches, batch{startIdx: current, length: accountCount - current})
+			batches = append(batches, batch{startIdx: curIdx, length: accountCount - curIdx})
 		}
 
-		current += batchSize
+		curIdx += batchSize
 	}
 
 	wg := sync.WaitGroup{}
 
 	wg.Add(len(batches))
 
-	for batchIdx, batch := range batches {
-		go func(batchIdx int) {
+	for curBatchIdx, curBatch := range batches {
+		go func(batch *batch, batchIdx int) {
 			defer wg.Done()
 
 			cmds := make([]*model.RegisterUserCommand, batch.length)
@@ -128,11 +137,11 @@ func generateUsers(service *admin.AdminService) {
 			err := service.RegisterUsers(context.Background(), cmds)
 
 			if err != nil {
-				panic("failed to register users")
+				panic(err)
 			}
 
 			fmt.Printf("Batch %v: Successfully registered %v users\n", batchIdx, len(cmds))
-		}(batchIdx)
+		}(&curBatch, curBatchIdx)
 	}
 
 	wg.Wait()
