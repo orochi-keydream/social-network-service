@@ -72,7 +72,10 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 		gender,
 		birthdate,
 		biography,
-		city)
+		city,
+		first_name_tsvector,
+		second_name_tsvector
+	)
 	select * from unnest
 	(
 		$1::text[],
@@ -81,7 +84,19 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 		$4::integer[],
 		$5::date[],
 		$6::text[],
-		$7::text[]
+		$7::text[],
+		array(
+			select to_tsvector(a) from unnest
+			(
+				$2::text[]
+			) a
+		),
+		array(
+			select to_tsvector(b) from unnest
+			(
+				$3::text[]
+			) b
+		)
 	)`
 
 	var ec ExecutionContext
@@ -215,7 +230,9 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 		ec = tx
 	}
 
-	rows, err := ec.QueryContext(ctx, b.String(), params...)
+	query := b.String()
+
+	rows, err := ec.QueryContext(ctx, query, params...)
 
 	if err != nil {
 		return nil, err
