@@ -1,13 +1,12 @@
 package app
 
 import (
-	"context"
-	"database/sql"
 	_ "social-network-service/docs"
 	"social-network-service/internal/api/account"
 	"social-network-service/internal/api/dialog"
 	"social-network-service/internal/api/post"
 	"social-network-service/internal/api/user"
+	"social-network-service/internal/database"
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
@@ -24,29 +23,21 @@ import (
 // @name Authorization
 
 func Run() {
-	ctx := context.Background()
-
-	connStr := "host=localhost port=5432 user=postgres password=123 dbname=social_network_db"
-
-	db, err := sql.Open("pgx", connStr)
-
-	if err != nil {
-		panic(err)
+	cfCfg := database.ConnectionFactoryConfig{
+		MasterConnectionString: "host=haproxy port=15432 user=postgres password=123 dbname=social_network_db",
+		SyncConnectionString:   "host=haproxy port=25432 user=postgres password=123 dbname=social_network_db",
+		AsyncConnectionString:  "host=haproxy port=35432 user=postgres password=123 dbname=social_network_db",
 	}
 
-	err = db.PingContext(ctx)
+	cf := database.NewConnectionFactory(cfCfg)
 
-	if err != nil {
-		panic(err)
-	}
+	tm := database.NewTransactionManager(cf)
 
-	tm := NewTransactionManager(db)
-
-	userRepository := repository.NewUserRepository(db)
-	userAccountRepository := repository.NewUserAccountRepository(db)
-	dialogRepository := repository.NewDialogRepository(db)
-	postRepository := repository.NewPostRepository(db)
-	userFriendRepository := repository.NewUserFriendRepository(db)
+	userRepository := repository.NewUserRepository(cf)
+	userAccountRepository := repository.NewUserAccountRepository(cf)
+	dialogRepository := repository.NewDialogRepository(cf)
+	postRepository := repository.NewPostRepository(cf)
+	userFriendRepository := repository.NewUserFriendRepository(cf)
 
 	jwtService := service.NewJwtService()
 

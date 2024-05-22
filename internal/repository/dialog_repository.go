@@ -7,22 +7,22 @@ import (
 )
 
 type DialogRepository struct {
-	db *sql.DB
+	cf IConnectionFactory
 }
 
-func NewDialogRepository(db *sql.DB) *DialogRepository {
+func NewDialogRepository(cf IConnectionFactory) *DialogRepository {
 	return &DialogRepository{
-		db: db,
+		cf: cf,
 	}
 }
 
 func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, tx *sql.Tx) (model.MessageId, error) {
 	const query = "insert into messages (sent_at, from_user_id, to_user_id, text) values ($1, $2, $3, $4) returning message_id"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -46,10 +46,10 @@ func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, t
 func (r *DialogRepository) GetMessages(ctx context.Context, fromUserId model.UserId, toUserId model.UserId, tx *sql.Tx) ([]*model.Message, error) {
 	const query = "select message_id, sent_at, from_user_id, to_user_id, text from messages where (from_user_id = $1 and to_user_id = $2) or (from_user_id = $2 and to_user_id = $1) order by sent_at desc"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}

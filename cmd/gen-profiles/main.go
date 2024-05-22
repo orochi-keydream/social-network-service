@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"social-network-service/internal/admin"
-	"social-network-service/internal/app"
+	"social-network-service/internal/database"
 	"social-network-service/internal/model"
 	"social-network-service/internal/repository"
 	"strings"
@@ -39,26 +39,18 @@ var surnames = getFromFile(surnamesFilePath)
 var cities = getFromFile(citiesFilePath)
 
 func main() {
-	ctx := context.Background()
-
-	connStr := "host=localhost port=5432 user=postgres password=123 dbname=social_network_db"
-
-	db, err := sql.Open("pgx", connStr)
-
-	if err != nil {
-		panic(err)
+	cfCfg := database.ConnectionFactoryConfig{
+		MasterConnectionString: "host=localhost port=15432 user=postgres password=123 dbname=social_network_db",
+		SyncConnectionString:   "host=localhost port=25432 user=postgres password=123 dbname=social_network_db",
+		AsyncConnectionString:  "host=localhost port=35432 user=postgres password=123 dbname=social_network_db",
 	}
 
-	err = db.PingContext(ctx)
+	cf := database.NewConnectionFactory(cfCfg)
 
-	if err != nil {
-		panic(err)
-	}
+	tm := database.NewTransactionManager(cf)
 
-	tm := app.NewTransactionManager(db)
-
-	userRepository := repository.NewUserRepository(db)
-	userAccountRepository := repository.NewUserAccountRepository(db)
+	userRepository := repository.NewUserRepository(cf)
+	userAccountRepository := repository.NewUserAccountRepository(cf)
 
 	appServiceConfig := &admin.AdminServiceConfiguration{
 		UserRepository:        userRepository,

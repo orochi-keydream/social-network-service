@@ -7,22 +7,22 @@ import (
 )
 
 type UserFriendRepository struct {
-	db *sql.DB
+	cf IConnectionFactory
 }
 
-func NewUserFriendRepository(db *sql.DB) *UserFriendRepository {
+func NewUserFriendRepository(cf IConnectionFactory) *UserFriendRepository {
 	return &UserFriendRepository{
-		db: db,
+		cf: cf,
 	}
 }
 
 func (r *UserFriendRepository) GetFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]model.UserId, error) {
 	const query = "select friend_user_id from user_friends where user_id = $1"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -53,10 +53,10 @@ func (r *UserFriendRepository) GetFriends(ctx context.Context, userId model.User
 func (r *UserFriendRepository) AddFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error {
 	const query = "insert into user_friends (user_id, friend_user_id) values ($1, $2)"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -73,10 +73,10 @@ func (r *UserFriendRepository) AddFriend(ctx context.Context, userId model.UserI
 func (r *UserFriendRepository) RemoveFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error {
 	const query = "delete from user_friends where user_id = $1 and friend_user_id = $2"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}

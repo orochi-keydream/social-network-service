@@ -1,4 +1,4 @@
-package app
+package database
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 )
 
 type TransactionManager struct {
-	db *sql.DB
+	cf *ConnectionFactory
 }
 
-func NewTransactionManager(db *sql.DB) *TransactionManager {
+func NewTransactionManager(cf *ConnectionFactory) *TransactionManager {
 	return &TransactionManager{
-		db: db,
+		cf: cf,
 	}
 }
 
@@ -21,7 +21,7 @@ func (tm *TransactionManager) Begin(ctx context.Context) (*sql.Tx, error) {
 		ReadOnly:  false,
 	}
 
-	tx, err := tm.db.BeginTx(ctx, &opts)
+	tx, err := tm.cf.GetMaster().BeginTx(ctx, &opts)
 
 	if err != nil {
 		return nil, err
