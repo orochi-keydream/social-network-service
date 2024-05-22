@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/http"
 	_ "social-network-service/docs"
 	"social-network-service/internal/api/account"
 	"social-network-service/internal/api/dialog"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -66,6 +68,11 @@ func Run() {
 	dialog.RegisterDialogEndpoints(appService, jwtService, engine, authMiddleware)
 
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
+	}()
 
 	engine.Run(":8080")
 }

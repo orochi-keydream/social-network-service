@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"social-network-service/internal/metric"
 	"social-network-service/internal/model"
 )
 
@@ -83,6 +84,9 @@ func (r *PostRepository) GetPosts(ctx context.Context, userIds []model.UserId, o
 func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error {
 	const query = "insert into posts (post_id, published_at, user_id, text) values ($1, $2, $3, $4)"
 
+	// TODO: Extract it to an interface.
+	metric.IncCreatePostAttempts()
+
 	var ec IExecutionContext
 
 	if tx == nil {
@@ -96,6 +100,9 @@ func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.
 	if err != nil {
 		return err
 	}
+
+	// TODO: Extract it to an interface.
+	metric.IncCreatePostSuccessfull()
 
 	return nil
 }
