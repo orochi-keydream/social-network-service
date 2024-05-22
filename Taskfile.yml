@@ -1,0 +1,71 @@
+version: '3'
+
+tasks:
+  run:
+    desc: Run the service
+    cmds:
+      - go run ./cmd/app/main.go
+
+  gen-profiles:
+    desc: Generate random profiles
+    summary: |
+      Generate random profiles.
+
+      Supported flags:
+      --count       Number of accounts to be created
+      --batch-size  Size of batches
+
+      Usage:
+      task gen-profiles -- --count 1000 --batch-size 50
+    cmds:
+      - go run ./cmd/gen-profiles/main.go {{.CLI_ARGS}}
+
+  compose-service-up:
+    desc: Up the container of the service
+    cmds:
+      - docker compose -f ./docker-compose-service.yml up -d
+
+  compose-service-down:
+    desc: Down the container of the service
+    cmds:
+      - docker compose -f ./docker-compose-service.yml down
+
+  compose-infra-up:
+    desc: Up infrastructure containers
+    cmds:
+      - docker compose -f ./docker-compose-infra.yml up -d
+
+  compose-infra-stop:
+    desc: Stop infrastructure containers
+    cmds:
+      - docker compose -f ./docker-compose-infra.yml stop
+
+  compose-infra-start:
+    desc: Stop infrastructure containers
+    cmds:
+      - docker compose -f ./docker-compose-infra.yml start
+
+  compose-infra-down:
+    desc: Up infrastructure containers
+    cmds:
+      - docker compose -f ./docker-compose-infra.yml down
+
+  migrate-new:
+    desc: Create new migration file
+    cmds:
+      - goose -dir ./migrations/ create untitled sql
+
+  migrate-up:
+    desc: Migrate database up
+    cmds:
+      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
+
+  migrate-down:
+    desc: Migrate database down
+    cmds:
+      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" down
+
+  gen-swag:
+    desc: Generate Swagger
+    cmds:
+      - swag init -g ./internal/app/app.go
