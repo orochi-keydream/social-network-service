@@ -21,23 +21,29 @@ type UserDto struct {
 	City       string    `db:"city"`
 }
 
-type UserRepository struct {
-	db *sql.DB
+type UserRepositoryConfiguartion struct {
+	UseAsyncReplicaForReadOperations bool
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
+type UserRepository struct {
+	config UserRepositoryConfiguartion
+	cf     IConnectionFactory
+}
+
+func NewUserRepository(config UserRepositoryConfiguartion, cf IConnectionFactory) *UserRepository {
 	return &UserRepository{
-		db: db,
+		config: config,
+		cf:     cf,
 	}
 }
 
 func (r *UserRepository) Add(ctx context.Context, user *model.User, tx *sql.Tx) error {
 	const query = "insert into users (user_id, first_name, second_name, gender, birthdate, biography, city, first_name_tsvector, second_name_tsvector) values ($1, $2, $3, $4, $5, $6, $7, to_tsvector('english', $2), to_tsvector('english', $3))"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -72,7 +78,10 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 		gender,
 		birthdate,
 		biography,
-		city)
+		city,
+		first_name_tsvector,
+		second_name_tsvector
+	)
 	select * from unnest
 	(
 		$1::text[],
@@ -81,13 +90,25 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 		$4::integer[],
 		$5::date[],
 		$6::text[],
-		$7::text[]
+		$7::text[],
+		array(
+			select to_tsvector(a) from unnest
+			(
+				$2::text[]
+			) a
+		),
+		array(
+			select to_tsvector(b) from unnest
+			(
+				$3::text[]
+			) b
+		)
 	)`
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -145,10 +166,15 @@ func (r *UserRepository) AddBulk(ctx context.Context, users []*model.User, tx *s
 func (r *UserRepository) Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.User, error) {
 	const query = "select user_id, first_name, second_name, gender, birthdate, biography, city from users where user_id = $1"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetSync()
+		if r.config.UseAsyncReplicaForReadOperations {
+			ec = r.cf.GetAsync()
+		} else {
+			ec = r.cf.GetMaster()
+		}
 	} else {
 		ec = tx
 	}
@@ -207,15 +233,21 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 
 	b.WriteString(" order by user_id limit 20")
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		if r.config.UseAsyncReplicaForReadOperations {
+			ec = r.cf.GetAsync()
+		} else {
+			ec = r.cf.GetMaster()
+		}
 	} else {
 		ec = tx
 	}
 
-	rows, err := ec.QueryContext(ctx, b.String(), params...)
+	query := b.String()
+
+	rows, err := ec.QueryContext(ctx, query, params...)
 
 	if err != nil {
 		return nil, err

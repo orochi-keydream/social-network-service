@@ -9,22 +9,22 @@ import (
 )
 
 type UserAccountRepository struct {
-	db *sql.DB
+	cf IConnectionFactory
 }
 
-func NewUserAccountRepository(db *sql.DB) *UserAccountRepository {
+func NewUserAccountRepository(cf IConnectionFactory) *UserAccountRepository {
 	return &UserAccountRepository{
-		db: db,
+		cf: cf,
 	}
 }
 
 func (r *UserAccountRepository) Add(ctx context.Context, account *model.UserAccount, tx *sql.Tx) error {
 	const query = "insert into user_accounts (user_id, password_hash) values ($1, $2)"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -41,10 +41,10 @@ func (r *UserAccountRepository) Add(ctx context.Context, account *model.UserAcco
 func (r *UserAccountRepository) AddBulk(ctx context.Context, accounts []*model.UserAccount, tx *sql.Tx) error {
 	const query = "insert into user_accounts (user_id, password_hash) select * from unnest ($1::text[], $2::text[])"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -77,10 +77,10 @@ func (r *UserAccountRepository) AddBulk(ctx context.Context, accounts []*model.U
 func (r *UserAccountRepository) Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.UserAccount, error) {
 	const query = "select user_id, password_hash from user_accounts where user_id = $1"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}

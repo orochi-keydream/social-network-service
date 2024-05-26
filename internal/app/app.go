@@ -1,19 +1,24 @@
 package app
 
 import (
-	"context"
-	"database/sql"
+	"fmt"
+	"net/http"
+	"os"
 	_ "social-network-service/docs"
 	"social-network-service/internal/api/account"
 	"social-network-service/internal/api/dialog"
 	"social-network-service/internal/api/post"
 	"social-network-service/internal/api/user"
+	"social-network-service/internal/database"
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -24,29 +29,28 @@ import (
 // @name Authorization
 
 func Run() {
-	ctx := context.Background()
+	dbHost := getDatabaseHost()
 
-	connStr := "host=localhost port=5432 user=postgres password=123 dbname=social_network_db"
-
-	db, err := sql.Open("pgx", connStr)
-
-	if err != nil {
-		panic(err)
+	cfCfg := database.ConnectionFactoryConfig{
+		MasterConnectionString: fmt.Sprintf("host=%s port=15432 user=postgres password=123 dbname=social_network_db", dbHost),
+		SyncConnectionString:   fmt.Sprintf("host=%s port=25432 user=postgres password=123 dbname=social_network_db", dbHost),
+		AsyncConnectionString:  fmt.Sprintf("host=%s port=35432 user=postgres password=123 dbname=social_network_db", dbHost),
 	}
 
-	err = db.PingContext(ctx)
+	cf := database.NewConnectionFactory(cfCfg)
 
-	if err != nil {
-		panic(err)
+	tm := database.NewTransactionManager(cf)
+
+	userRepositoryConfig := repository.UserRepositoryConfiguartion{
+		UseAsyncReplicaForReadOperations: shouldUseAsyncReplica(),
 	}
 
-	tm := NewTransactionManager(db)
+	userRepository := repository.NewUserRepository(userRepositoryConfig, cf)
 
-	userRepository := repository.NewUserRepository(db)
-	userAccountRepository := repository.NewUserAccountRepository(db)
-	dialogRepository := repository.NewDialogRepository(db)
-	postRepository := repository.NewPostRepository(db)
-	userFriendRepository := repository.NewUserFriendRepository(db)
+	userAccountRepository := repository.NewUserAccountRepository(cf)
+	dialogRepository := repository.NewDialogRepository(cf)
+	postRepository := repository.NewPostRepository(cf)
+	userFriendRepository := repository.NewUserFriendRepository(cf)
 
 	jwtService := service.NewJwtService()
 
@@ -76,5 +80,49 @@ func Run() {
 
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
+	}()
+
 	engine.Run(":8080")
+	time.Sleep(time.Second * 5)
+}
+
+func shouldUseAsyncReplica() bool {
+	str := os.Getenv("USE_ASYNC_REPLICA")
+
+	if str == "" {
+		return false
+	}
+
+	val, err := strconv.ParseBool(str)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}
+
+func getDatabaseHost() string {
+	isRunningInContainerStr := os.Getenv("IS_RUNNING_IN_CONTAINER")
+
+	var isRunningInContainer bool
+
+	if isRunningInContainerStr != "" {
+		var err error
+
+		isRunningInContainer, err = strconv.ParseBool(isRunningInContainerStr)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if isRunningInContainer {
+		return "haproxy"
+	} else {
+		return "localhost"
+	}
 }

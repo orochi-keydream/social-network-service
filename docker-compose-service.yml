@@ -1,0 +1,21 @@
+version: "3.3"
+
+networks:
+  otus-hl:
+    driver: bridge
+
+services:
+  backend:
+    container_name: backend
+    image: social-network-service
+    build:
+      context: ./
+      dockerfile: service.Dockerfile
+    networks:
+      - otus-hl
+    ports:
+      - "8080:8080"
+      - "2112:2112"
+    environment:
+      - IS_RUNNING_IN_CONTAINER=TRUE
+      - USE_ASYNC_REPLICA=$USE_ASYNC_REPLICA

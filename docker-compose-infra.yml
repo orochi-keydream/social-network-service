@@ -1,0 +1,135 @@
+version: "3.3"
+
+networks:
+  otus-hl:
+    driver: bridge
+
+services:
+  etcd0:
+    container_name: etcd0
+    image: quay.io/coreos/etcd:v2.3.8
+    networks:
+      - otus-hl
+    command:
+      [
+        "--name", "etcd0",
+        "--data-dir", "/etcd-data",
+        "--listen-client-urls", "http://0.0.0.0:2379",
+        "--advertise-client-urls", "http://etcd0:2379",
+        "--listen-peer-urls", "http://0.0.0.0:2380",
+        "--initial-advertise-peer-urls", "http://etcd0:2380",
+        "--initial-cluster", "etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380",
+        "--initial-cluster-token", "token",
+        "--initial-cluster-state", "new"
+      ]
+  etcd1:
+    container_name: etcd1
+    image: quay.io/coreos/etcd:v2.3.8
+    networks:
+      - otus-hl
+    command:
+      [
+        "--name", "etcd1",
+        "--data-dir", "/etcd-data",
+        "--listen-client-urls", "http://0.0.0.0:2379",
+        "--advertise-client-urls", "http://etcd1:2379",
+        "--listen-peer-urls", "http://0.0.0.0:2380",
+        "--initial-advertise-peer-urls", "http://etcd1:2380",
+        "--initial-cluster", "etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380",
+        "--initial-cluster-token", "token",
+        "--initial-cluster-state", "new"
+      ]
+  etcd2:
+    container_name: etcd2
+    image: quay.io/coreos/etcd:v2.3.8
+    networks:
+      - otus-hl
+    command:
+      [
+        "--name", "etcd2",
+        "--data-dir", "/etcd-data",
+        "--listen-client-urls", "http://0.0.0.0:2379",
+        "--advertise-client-urls", "http://etcd2:2379",
+        "--listen-peer-urls", "http://0.0.0.0:2380",
+        "--initial-advertise-peer-urls", "http://etcd2:2380",
+        "--initial-cluster", "etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380",
+        "--initial-cluster-token", "token",
+        "--initial-cluster-state", "new"
+      ]
+  postgres0:
+    container_name: postgres0
+    image: ghcr.io/zalando/spilo-16:3.2-p2
+    networks:
+      - otus-hl
+    environment:
+      - ETCD_HOST=etcd0:2379
+      - ETCD_HOSTS=etcd0:2379,etcd1:2379,etcd2:2379
+      - PGUSER_SUPERUSER=postgres
+      - PGPASSWORD_SUPERUSER=123
+      - ALLOW_NOSSL=true
+      - PGVERSION=16
+    depends_on:
+      etcd0:
+        condition: service_started
+      etcd1:
+        condition: service_started
+      etcd2:
+        condition: service_started
+  postgres1:
+    container_name: postgres1
+    image: ghcr.io/zalando/spilo-16:3.2-p2
+    networks:
+      - otus-hl
+    environment:
+      - ETCD_HOST=etcd0:2379
+      - ETCD_HOSTS=etcd0:2379,etcd1:2379,etcd2:2379
+      - PGUSER_SUPERUSER=postgres
+      - PGPASSWORD_SUPERUSER=123
+      - ALLOW_NOSSL=true
+      - PGVERSION=16
+    depends_on:
+      etcd0:
+        condition: service_started
+      etcd1:
+        condition: service_started
+      etcd2:
+        condition: service_started
+  postgres2:
+    container_name: postgres2
+    image: ghcr.io/zalando/spilo-16:3.2-p2
+    networks:
+      - otus-hl
+    environment:
+      - ETCD_HOST=etcd0:2379
+      - ETCD_HOSTS=etcd0:2379,etcd1:2379,etcd2:2379
+      - PGUSER_SUPERUSER=postgres
+      - PGPASSWORD_SUPERUSER=123
+      - ALLOW_NOSSL=true
+      - PGVERSION=16
+    depends_on:
+      etcd0:
+        condition: service_started
+      etcd1:
+        condition: service_started
+      etcd2:
+        condition: service_started
+  ha-proxy:
+    container_name: haproxy
+    image: otus-haproxy
+    build:
+      context: ./
+      dockerfile: haproxy.Dockerfile
+    networks:
+      - otus-hl
+    ports:
+      - "7000:7000"
+      - "15432:15432"
+      - "25432:25432"
+      - "35432:35432"
+    depends_on:
+      postgres0:
+        condition: service_started
+      postgres1:
+        condition: service_started
+      postgres2:
+        condition: service_started

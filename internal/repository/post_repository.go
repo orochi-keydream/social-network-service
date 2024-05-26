@@ -3,26 +3,27 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"social-network-service/internal/metric"
 	"social-network-service/internal/model"
 )
 
 type PostRepository struct {
-	db *sql.DB
+	cf IConnectionFactory
 }
 
-func NewPostRepository(db *sql.DB) *PostRepository {
+func NewPostRepository(cf IConnectionFactory) *PostRepository {
 	return &PostRepository{
-		db: db,
+		cf: cf,
 	}
 }
 
 func (r *PostRepository) GetPost(ctx context.Context, postId model.PostId, tx *sql.Tx) (*model.Post, error) {
 	const query = "select post_id, published_at, user_id, text from posts where post_id = $1"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -46,10 +47,10 @@ func (r *PostRepository) GetPost(ctx context.Context, postId model.PostId, tx *s
 func (r *PostRepository) GetPosts(ctx context.Context, userIds []model.UserId, offset int, limit int, tx *sql.Tx) ([]*model.Post, error) {
 	const query = "select post_id, published_at, user_id, text from posts where user_id = any ($1) order by published_at desc offset $2 limit $3"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -83,10 +84,13 @@ func (r *PostRepository) GetPosts(ctx context.Context, userIds []model.UserId, o
 func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error {
 	const query = "insert into posts (post_id, published_at, user_id, text) values ($1, $2, $3, $4)"
 
-	var ec ExecutionContext
+	// TODO: Extract it to an interface.
+	metric.IncCreatePostAttempts()
+
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -97,16 +101,19 @@ func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.
 		return err
 	}
 
+	// TODO: Extract it to an interface.
+	metric.IncCreatePostSuccessfull()
+
 	return nil
 }
 
 func (r *PostRepository) UpdatePost(ctx context.Context, post *model.Post, tx *sql.Tx) error {
 	const query = "update posts set text = $1 where post_id = $2"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
@@ -123,10 +130,10 @@ func (r *PostRepository) UpdatePost(ctx context.Context, post *model.Post, tx *s
 func (r *PostRepository) DeletePost(ctx context.Context, postId model.PostId, tx *sql.Tx) error {
 	const query = "delete from posts where post_id = $1"
 
-	var ec ExecutionContext
+	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.db
+		ec = r.cf.GetMaster()
 	} else {
 		ec = tx
 	}
