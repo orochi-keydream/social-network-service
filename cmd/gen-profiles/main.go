@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -62,7 +63,11 @@ func main() {
 
 	tm := database.NewTransactionManager(cf)
 
-	userRepository := repository.NewUserRepository(cf)
+	userRepoConfig := repository.UserRepositoryConfiguartion{
+		UseAsyncReplicaForReadOperations: false,
+	}
+
+	userRepository := repository.NewUserRepository(userRepoConfig, cf)
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 
 	appServiceConfig := &admin.AdminServiceConfiguration{
@@ -97,6 +102,8 @@ func generateUsers(service *admin.AdminService) {
 	for curBatchIdx, curBatch := range batches {
 		go func(batch *batch, batchIdx int) {
 			defer wg.Done()
+
+			log.Printf("Batch %v: Creating users", batchIdx)
 
 			cmds := make([]*model.RegisterUserCommand, batch.length)
 

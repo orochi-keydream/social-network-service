@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	_ "social-network-service/docs"
 	"social-network-service/internal/api/account"
 	"social-network-service/internal/api/dialog"
@@ -11,6 +13,8 @@ import (
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -25,17 +29,24 @@ import (
 // @name Authorization
 
 func Run() {
+	dbHost := getDatabaseHost()
+
 	cfCfg := database.ConnectionFactoryConfig{
-		MasterConnectionString: "host=haproxy port=15432 user=postgres password=123 dbname=social_network_db",
-		SyncConnectionString:   "host=haproxy port=25432 user=postgres password=123 dbname=social_network_db",
-		AsyncConnectionString:  "host=haproxy port=35432 user=postgres password=123 dbname=social_network_db",
+		MasterConnectionString: fmt.Sprintf("host=%s port=15432 user=postgres password=123 dbname=social_network_db", dbHost),
+		SyncConnectionString:   fmt.Sprintf("host=%s port=25432 user=postgres password=123 dbname=social_network_db", dbHost),
+		AsyncConnectionString:  fmt.Sprintf("host=%s port=35432 user=postgres password=123 dbname=social_network_db", dbHost),
 	}
 
 	cf := database.NewConnectionFactory(cfCfg)
 
 	tm := database.NewTransactionManager(cf)
 
-	userRepository := repository.NewUserRepository(cf)
+	userRepositoryConfig := repository.UserRepositoryConfiguartion{
+		UseAsyncReplicaForReadOperations: shouldUseAsyncReplica(),
+	}
+
+	userRepository := repository.NewUserRepository(userRepositoryConfig, cf)
+
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 	dialogRepository := repository.NewDialogRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
@@ -75,4 +86,43 @@ func Run() {
 	}()
 
 	engine.Run(":8080")
+	time.Sleep(time.Second * 5)
+}
+
+func shouldUseAsyncReplica() bool {
+	str := os.Getenv("USE_ASYNC_REPLICA")
+
+	if str == "" {
+		return false
+	}
+
+	val, err := strconv.ParseBool(str)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}
+
+func getDatabaseHost() string {
+	isRunningInContainerStr := os.Getenv("IS_RUNNING_IN_CONTAINER")
+
+	var isRunningInContainer bool
+
+	if isRunningInContainerStr != "" {
+		var err error
+
+		isRunningInContainer, err = strconv.ParseBool(isRunningInContainerStr)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if isRunningInContainer {
+		return "haproxy"
+	} else {
+		return "localhost"
+	}
 }

@@ -16,3 +16,6 @@ services:
     ports:
       - "8080:8080"
       - "2112:2112"
+    environment:
+      - IS_RUNNING_IN_CONTAINER=TRUE
+      - USE_ASYNC_REPLICA=$USE_ASYNC_REPLICA
