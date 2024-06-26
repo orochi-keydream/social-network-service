@@ -4,7 +4,7 @@ tasks:
   run:
     desc: Run the service
     cmds:
-      - go run ./cmd/app/main.go
+      - go run ./cmd/app/main.go {{.CLI_ARGS}}
 
   gen-profiles:
     desc: Generate random profiles
@@ -46,7 +46,7 @@ tasks:
       - docker compose -f ./docker-compose-infra.yml start
 
   compose-infra-down:
-    desc: Up infrastructure containers
+    desc: Down infrastructure containers
     cmds:
       - docker compose -f ./docker-compose-infra.yml down
 
