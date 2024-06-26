@@ -12,66 +12,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserRepository interface {
-	Add(ctx context.Context, user *model.User, tx *sql.Tx) error
-	AddBulk(ctx context.Context, users []*model.User, tx *sql.Tx) error
-	Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.User, error)
-	SearchUsers(ctx context.Context, firstName string, secondName string, tx *sql.Tx) ([]*model.User, error)
-}
-
-type UserAccountRepository interface {
-	Add(ctx context.Context, account *model.UserAccount, tx *sql.Tx) error
-	AddBulk(ctx context.Context, accounts []*model.UserAccount, tx *sql.Tx) error
-	Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.UserAccount, error)
-}
-
-type DialogRepository interface {
-	AddMessage(ctx context.Context, msg *model.Message, tx *sql.Tx) (model.MessageId, error)
-	GetMessages(ctx context.Context, fromUserId model.UserId, toUserId model.UserId, tx *sql.Tx) ([]*model.Message, error)
-}
-
-type PostRepository interface {
-	GetPosts(ctx context.Context, userIds []model.UserId, offset int, limit int, tx *sql.Tx) ([]*model.Post, error)
-	GetPost(ctx context.Context, postId model.PostId, tx *sql.Tx) (*model.Post, error)
-	AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error
-	UpdatePost(ctx context.Context, post *model.Post, tx *sql.Tx) error
-	DeletePost(ctx context.Context, postId model.PostId, tx *sql.Tx) error
-}
-
-type UserFriendRepository interface {
-	GetFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]model.UserId, error)
-	AddFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error
-	RemoveFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error
-}
-
-type TokenGenerator interface {
-	GenerateToken(userId model.UserId) (string, error)
-}
-
-type TransactionManager interface {
-	Begin(ctx context.Context) (*sql.Tx, error)
-	Commit(tx *sql.Tx) error
-	Rollback(tx *sql.Tx) error
-}
-
 type AppServiceConfiguration struct {
-	TokenGenerator        TokenGenerator
-	UserRepository        UserRepository
-	UserAccountRepository UserAccountRepository
-	UserFriendRepository  UserFriendRepository
-	DialogRepository      DialogRepository
-	PostRepository        PostRepository
-	TransactionManager    TransactionManager
+	TokenGenerator        ITokenGenerator
+	UserRepository        IUserRepository
+	UserAccountRepository IUserAccountRepository
+	UserFriendRepository  IUserFriendRepository
+	DialogRepository      IDialogRepository
+	PostRepository        IPostRepository
+	TransactionManager    ITransactionManager
 }
 
 type AppService struct {
-	tokenGenerator        TokenGenerator
-	userRepository        UserRepository
-	userAccountRepository UserAccountRepository
-	userFriendRepository  UserFriendRepository
-	dialogRepository      DialogRepository
-	postRepository        PostRepository
-	transactionManager    TransactionManager
+	tokenGenerator        ITokenGenerator
+	userRepository        IUserRepository
+	userAccountRepository IUserAccountRepository
+	userFriendRepository  IUserFriendRepository
+	dialogRepository      IDialogRepository
+	postRepository        IPostRepository
+	transactionManager    ITransactionManager
 }
 
 func NewAppService(config *AppServiceConfiguration) *AppService {
@@ -325,7 +283,6 @@ func (s *AppService) GetMessages(ctx context.Context, cmd model.GetMessagesComma
 }
 
 func (s *AppService) ReadPosts(ctx context.Context, cmd model.ReadPostsCommand) ([]*model.Post, error) {
-	// TODO: Consider using transactions.
 	user, err := s.userRepository.Get(ctx, cmd.UserId, nil)
 
 	if err != nil {
@@ -384,14 +341,18 @@ func (s *AppService) CreatePost(ctx context.Context, cmd model.CreatePostCommand
 
 	postId := model.PostId(uuid.NewString())
 
-	post := model.Post{
+	post := &model.Post{
 		PostId:       postId,
 		PublishedAt:  time.Now().UTC(),
 		AuthorUserId: cmd.AuthorUserId,
 		Text:         cmd.Text,
 	}
 
-	s.postRepository.AddPost(ctx, &post, nil)
+	err = s.postRepository.AddPost(ctx, post, nil)
+
+	if err != nil {
+		return model.PostId(""), err
+	}
 
 	return post.PostId, nil
 }
@@ -415,9 +376,7 @@ func (s *AppService) UpdatePost(ctx context.Context, cmd model.UpdatePostCommand
 
 	post.Text = cmd.Text
 
-	s.postRepository.UpdatePost(ctx, post, nil)
-
-	return nil
+	return s.postRepository.UpdatePost(ctx, post, nil)
 }
 
 func (s *AppService) DeletePost(ctx context.Context, cmd model.DeletePostCommand) error {
@@ -474,7 +433,6 @@ func (s *AppService) AddFriend(ctx context.Context, userId model.UserId, friendU
 		return model.NewClientError("user IDs must differ", nil)
 	}
 
-	// TODO: What if the row is already present?
 	err = s.userFriendRepository.AddFriend(ctx, user.UserId, friendUser.UserId, nil)
 
 	if err != nil {
