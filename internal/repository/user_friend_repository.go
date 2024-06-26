@@ -50,6 +50,43 @@ func (r *UserFriendRepository) GetFriends(ctx context.Context, userId model.User
 	return userIds, nil
 }
 
+func (r *UserFriendRepository) GetSubscribers(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]model.UserId, error) {
+	const query = "select user_id from user_friends where friend_user_id = $1"
+
+	var ec IExecutionContext
+
+	if tx == nil {
+		ec = r.cf.GetMaster()
+	} else {
+		ec = tx
+	}
+
+	rows, err := ec.QueryContext(ctx, query, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	userIds := []model.UserId{}
+
+	for rows.Next() {
+		var userId model.UserId
+		err := rows.Scan(&userId)
+
+		if err != nil {
+			return nil, err
+		}
+
+		userIds = append(userIds, userId)
+	}
+
+	return userIds, nil
+}
+
 func (r *UserFriendRepository) AddFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error {
 	const query = "insert into user_friends (user_id, friend_user_id) values ($1, $2)"
 

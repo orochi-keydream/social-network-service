@@ -87,3 +87,24 @@ type DeletePostCommand struct {
 	AuthorUserId UserId
 	PostId       PostId
 }
+
+// Cache
+
+type AddNewPostToFeedCacheCommand struct {
+	UserId UserId
+	PostId PostId
+}
+
+type UpdatePostInFeedCacheCommand struct {
+	UserId UserId
+	PostId PostId
+}
+
+type DeletePostFromFeedCacheCommand struct {
+	UserId UserId
+	PostId PostId
+}
+
+type RecreateFeedCacheCommand struct {
+	UserId UserId
+}

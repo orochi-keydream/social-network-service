@@ -19,6 +19,9 @@ type AppServiceConfiguration struct {
 	UserFriendRepository  IUserFriendRepository
 	DialogRepository      IDialogRepository
 	PostRepository        IPostRepository
+	FeedCache             IFeedCache
+	FeedCacheNotifier     IFeedCacheNotifier
+	PostEventNotifier     IPostEventNotifier
 	TransactionManager    ITransactionManager
 }
 
@@ -29,6 +32,9 @@ type AppService struct {
 	userFriendRepository  IUserFriendRepository
 	dialogRepository      IDialogRepository
 	postRepository        IPostRepository
+	feedCache             IFeedCache
+	cacheNotifier         IFeedCacheNotifier
+	postEventNotifier     IPostEventNotifier
 	transactionManager    ITransactionManager
 }
 
@@ -40,6 +46,9 @@ func NewAppService(config *AppServiceConfiguration) *AppService {
 		userFriendRepository:  config.UserFriendRepository,
 		dialogRepository:      config.DialogRepository,
 		postRepository:        config.PostRepository,
+		feedCache:             config.FeedCache,
+		cacheNotifier:         config.FeedCacheNotifier,
+		postEventNotifier:     config.PostEventNotifier,
 		transactionManager:    config.TransactionManager,
 	}
 }
@@ -294,15 +303,7 @@ func (s *AppService) ReadPosts(ctx context.Context, cmd model.ReadPostsCommand) 
 		}
 	}
 
-	friendUserIds, err := s.userFriendRepository.GetFriends(ctx, user.UserId, nil)
-
-	userIds := append([]model.UserId{user.UserId}, friendUserIds...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	posts, err := s.postRepository.GetPosts(ctx, userIds, cmd.Offset, cmd.Limit, nil)
+	posts, err := s.feedCache.GetFeed(user.UserId, cmd.Offset, cmd.Limit)
 
 	if err != nil {
 		return nil, err
@@ -354,6 +355,14 @@ func (s *AppService) CreatePost(ctx context.Context, cmd model.CreatePostCommand
 		return model.PostId(""), err
 	}
 
+	// TODO: Consider using outbox.
+
+	err = s.postEventNotifier.PublishPostCreatedEvent(post)
+
+	if err != nil {
+		return model.PostId(""), err
+	}
+
 	return post.PostId, nil
 }
 
@@ -376,7 +385,17 @@ func (s *AppService) UpdatePost(ctx context.Context, cmd model.UpdatePostCommand
 
 	post.Text = cmd.Text
 
-	return s.postRepository.UpdatePost(ctx, post, nil)
+	err = s.postRepository.UpdatePost(ctx, post, nil)
+
+	if err != nil {
+		return err
+	}
+
+	// TODO: Consider using outbox.
+
+	err = s.postEventNotifier.PublishPostUpdatedEvent(post)
+
+	return err
 }
 
 func (s *AppService) DeletePost(ctx context.Context, cmd model.DeletePostCommand) error {
@@ -402,7 +421,11 @@ func (s *AppService) DeletePost(ctx context.Context, cmd model.DeletePostCommand
 		return err
 	}
 
-	return nil
+	// TODO: Consider using outbox.
+
+	err = s.postEventNotifier.PublishPostDeletedEvent(post)
+
+	return err
 }
 
 func (s *AppService) AddFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId) error {
@@ -439,7 +462,11 @@ func (s *AppService) AddFriend(ctx context.Context, userId model.UserId, friendU
 		return err
 	}
 
-	return nil
+	// TODO: Consider using outbox.
+
+	err = s.cacheNotifier.PublishRecreateFeedMessage(user.UserId)
+
+	return err
 }
 
 func (s *AppService) RemoveFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId) error {
@@ -473,5 +500,116 @@ func (s *AppService) RemoveFriend(ctx context.Context, userId model.UserId, frie
 		return err
 	}
 
+	// TODO: Consider using outbox.
+
+	err = s.cacheNotifier.PublishRecreateFeedMessage(user.UserId)
+
+	return err
+}
+
+func (s *AppService) SpreadPostCreatedEvent(postId model.PostId, userId model.UserId) error {
+	ctx := context.Background()
+
+	friendUserIds, err := s.userFriendRepository.GetSubscribers(ctx, userId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	s.cacheNotifier.PublishAddNewPostToFeedMessage(userId, postId)
+
+	for _, friendUserId := range friendUserIds {
+		err = s.cacheNotifier.PublishAddNewPostToFeedMessage(friendUserId, postId)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (s *AppService) SpreadPostUpdatedEvent(postId model.PostId, userId model.UserId) error {
+	ctx := context.Background()
+
+	friendUserIds, err := s.userFriendRepository.GetSubscribers(ctx, userId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	s.cacheNotifier.PublishUpdatePostInFeedMessage(userId, postId)
+
+	for _, friendUserId := range friendUserIds {
+		err = s.cacheNotifier.PublishUpdatePostInFeedMessage(friendUserId, postId)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *AppService) SpreadPostDeletedEvent(postId model.PostId, userId model.UserId) error {
+	ctx := context.Background()
+
+	friendUserIds, err := s.userFriendRepository.GetSubscribers(ctx, userId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	s.cacheNotifier.PublishRecreateFeedMessage(userId)
+
+	for _, friendUserId := range friendUserIds {
+		err = s.cacheNotifier.PublishRecreateFeedMessage(friendUserId)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *AppService) AddNewPostToFeedCache(cmd model.AddNewPostToFeedCacheCommand) error {
+	ctx := context.Background()
+
+	post, err := s.postRepository.GetPost(ctx, cmd.PostId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.feedCache.AddPost(cmd.UserId, post)
+
+	return err
+}
+
+func (s *AppService) UpdatePostInFeedCache(cmd model.UpdatePostInFeedCacheCommand) error {
+	ctx := context.Background()
+
+	post, err := s.postRepository.GetPost(ctx, cmd.PostId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.feedCache.UpdatePost(cmd.UserId, post)
+
+	return err
+}
+
+func (s *AppService) RecreateFeedCache(cmd model.RecreateFeedCacheCommand) error {
+	ctx := context.Background()
+	posts, err := s.postRepository.GetPostsIncludingFriends(ctx, cmd.UserId, nil)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.feedCache.RecreateFeed(cmd.UserId, posts)
+
+	return err
 }

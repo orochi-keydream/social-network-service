@@ -1,3 +1,20 @@
+kafka_brokers:
+  - localhost:9091
+  - localhost:9092
+  - localhost:9093
+
+producers:
+  posts:
+    topic: "post_events"
+  feed:
+    topic: "feed_cache_commands"
+
+consumers:
+  posts:
+    topic: "post_events"
+  feed:
+    topic: "feed_cache_commands"
+
 database:
   host: "haproxy"
   master_port: 15432
@@ -7,3 +24,6 @@ database:
   user: "postgres"
   password: "123"
   dbname: social_network_db
+
+redis:
+  connection_string: "localhost:6379"

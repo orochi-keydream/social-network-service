@@ -7,7 +7,29 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig `yaml:"database"`
+	KafkaBrokers []string        `yaml:"kafka_brokers"`
+	Producers    ProducerConfigs `yaml:"producers"`
+	Consumers    ConsumerConfigs `yaml:"consumers"`
+	Database     DatabaseConfig  `yaml:"database"`
+	Redis        RedisConfig     `yaml:"redis"`
+}
+
+type ProducerConfigs struct {
+	Posts ProducerConfig `yaml:"posts"`
+	Feed  ProducerConfig `yaml:"feed"`
+}
+
+type ProducerConfig struct {
+	Topic string `yaml:"topic"`
+}
+
+type ConsumerConfigs struct {
+	Posts ConsumerConfig `yaml:"posts"`
+	Feed  ConsumerConfig `yaml:"feed"`
+}
+
+type ConsumerConfig struct {
+	Topic string `yaml:"topic"`
 }
 
 type DatabaseConfig struct {
@@ -18,6 +40,10 @@ type DatabaseConfig struct {
 	User         string `yaml:"user"`
 	Password     string `yaml:"password"`
 	DatabaseName string `yaml:"dbname"`
+}
+
+type RedisConfig struct {
+	ConnectionString string `yaml:"connection_string"`
 }
 
 var configPath string

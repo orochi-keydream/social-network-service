@@ -81,6 +81,53 @@ func (r *PostRepository) GetPosts(ctx context.Context, userIds []model.UserId, o
 	return posts, nil
 }
 
+func (r *PostRepository) GetPostsIncludingFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]*model.Post, error) {
+	const query = `
+		select
+			p.post_id,
+			p.published_at,
+			p.user_id,
+			p.text
+		from posts p
+		left join user_friends uf on p.user_id = uf.friend_user_id
+		where uf.user_id = $1 or p.user_id = $1
+		order by p.published_at
+		`
+
+	var ec IExecutionContext
+
+	if tx == nil {
+		ec = r.cf.GetMaster()
+	} else {
+		ec = tx
+	}
+
+	rows, err := ec.QueryContext(ctx, query, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	posts := []*model.Post{}
+
+	for rows.Next() {
+		var post model.Post
+		err = rows.Scan(&post.PostId, &post.PublishedAt, &post.AuthorUserId, &post.Text)
+
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, &post)
+	}
+
+	return posts, nil
+}
+
 func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error {
 	const query = "insert into posts (post_id, published_at, user_id, text) values ($1, $2, $3, $4)"
 
