@@ -3,18 +3,16 @@ package app
 import (
 	"fmt"
 	"net/http"
-	"os"
 	_ "social-network-service/docs"
 	"social-network-service/internal/api/account"
 	"social-network-service/internal/api/dialog"
 	"social-network-service/internal/api/post"
 	"social-network-service/internal/api/user"
+	"social-network-service/internal/config"
 	"social-network-service/internal/database"
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -29,24 +27,13 @@ import (
 // @name Authorization
 
 func Run() {
-	dbHost := getDatabaseHost()
+	cfg := config.LoadConfig()
 
-	cfCfg := database.ConnectionFactoryConfig{
-		MasterConnectionString: fmt.Sprintf("host=%s port=15432 user=postgres password=123 dbname=social_network_db", dbHost),
-		SyncConnectionString:   fmt.Sprintf("host=%s port=25432 user=postgres password=123 dbname=social_network_db", dbHost),
-		AsyncConnectionString:  fmt.Sprintf("host=%s port=35432 user=postgres password=123 dbname=social_network_db", dbHost),
-	}
-
-	cf := database.NewConnectionFactory(cfCfg)
+	cf := createConnectionFactory(cfg)
 
 	tm := database.NewTransactionManager(cf)
 
-	userRepositoryConfig := repository.UserRepositoryConfiguartion{
-		UseAsyncReplicaForReadOperations: shouldUseAsyncReplica(),
-	}
-
-	userRepository := repository.NewUserRepository(userRepositoryConfig, cf)
-
+	userRepository := repository.NewUserRepository(cf)
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 	dialogRepository := repository.NewDialogRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
@@ -86,43 +73,36 @@ func Run() {
 	}()
 
 	engine.Run(":8080")
-	time.Sleep(time.Second * 5)
 }
 
-func shouldUseAsyncReplica() bool {
-	str := os.Getenv("USE_ASYNC_REPLICA")
+func createConnectionFactory(cfg *config.Config) *database.ConnectionFactory {
+	dbCfg := cfg.Database
 
-	if str == "" {
-		return false
+	cfCfg := database.ConnectionFactoryConfig{
+		MasterConnectionString: fmt.Sprintf(
+			"host=%v port=%v user=%v password=%v dbname=%v",
+			dbCfg.Host,
+			dbCfg.MasterPort,
+			dbCfg.User,
+			dbCfg.Password,
+			dbCfg.DatabaseName),
+
+		SyncConnectionString: fmt.Sprintf(
+			"host=%v port=%v user=%v password=%v dbname=%v",
+			dbCfg.Host,
+			dbCfg.SyncPort,
+			dbCfg.User,
+			dbCfg.Password,
+			dbCfg.DatabaseName),
+
+		AsyncConnectionString: fmt.Sprintf(
+			"host=%v port=%v user=%v password=%v dbname=%v",
+			dbCfg.Host,
+			dbCfg.AsyncPort,
+			dbCfg.User,
+			dbCfg.Password,
+			dbCfg.DatabaseName),
 	}
 
-	val, err := strconv.ParseBool(str)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return val
-}
-
-func getDatabaseHost() string {
-	isRunningInContainerStr := os.Getenv("IS_RUNNING_IN_CONTAINER")
-
-	var isRunningInContainer bool
-
-	if isRunningInContainerStr != "" {
-		var err error
-
-		isRunningInContainer, err = strconv.ParseBool(isRunningInContainerStr)
-
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	if isRunningInContainer {
-		return "haproxy"
-	} else {
-		return "localhost"
-	}
+	return database.NewConnectionFactory(cfCfg)
 }

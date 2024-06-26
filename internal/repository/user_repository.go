@@ -21,19 +21,13 @@ type UserDto struct {
 	City       string    `db:"city"`
 }
 
-type UserRepositoryConfiguartion struct {
-	UseAsyncReplicaForReadOperations bool
-}
-
 type UserRepository struct {
-	config UserRepositoryConfiguartion
-	cf     IConnectionFactory
+	cf IConnectionFactory
 }
 
-func NewUserRepository(config UserRepositoryConfiguartion, cf IConnectionFactory) *UserRepository {
+func NewUserRepository(cf IConnectionFactory) *UserRepository {
 	return &UserRepository{
-		config: config,
-		cf:     cf,
+		cf: cf,
 	}
 }
 
@@ -169,12 +163,7 @@ func (r *UserRepository) Get(ctx context.Context, userId model.UserId, tx *sql.T
 	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.cf.GetSync()
-		if r.config.UseAsyncReplicaForReadOperations {
-			ec = r.cf.GetAsync()
-		} else {
-			ec = r.cf.GetMaster()
-		}
+		ec = r.cf.GetAsync()
 	} else {
 		ec = tx
 	}
@@ -236,11 +225,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, firstName string, seco
 	var ec IExecutionContext
 
 	if tx == nil {
-		if r.config.UseAsyncReplicaForReadOperations {
-			ec = r.cf.GetAsync()
-		} else {
-			ec = r.cf.GetMaster()
-		}
+		ec = r.cf.GetAsync()
 	} else {
 		ec = tx
 	}

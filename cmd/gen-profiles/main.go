@@ -63,11 +63,7 @@ func main() {
 
 	tm := database.NewTransactionManager(cf)
 
-	userRepoConfig := repository.UserRepositoryConfiguartion{
-		UseAsyncReplicaForReadOperations: false,
-	}
-
-	userRepository := repository.NewUserRepository(userRepoConfig, cf)
+	userRepository := repository.NewUserRepository(cf)
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 
 	appServiceConfig := &admin.AdminServiceConfiguration{

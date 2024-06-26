@@ -1,0 +1,9 @@
+database:
+  host: "localhost"
+  master_port: 15432
+  sync_port: 25432
+  async_port: 35432
+
+  user: "postgres"
+  password: "123"
+  dbname: social_network_db
