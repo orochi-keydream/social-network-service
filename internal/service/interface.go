@@ -26,6 +26,7 @@ type IDialogRepository interface {
 
 type IPostRepository interface {
 	GetPosts(ctx context.Context, userIds []model.UserId, offset int, limit int, tx *sql.Tx) ([]*model.Post, error)
+	GetPostsIncludingFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]*model.Post, error)
 	GetPost(ctx context.Context, postId model.PostId, tx *sql.Tx) (*model.Post, error)
 	AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error
 	UpdatePost(ctx context.Context, post *model.Post, tx *sql.Tx) error
@@ -34,6 +35,7 @@ type IPostRepository interface {
 
 type IUserFriendRepository interface {
 	GetFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]model.UserId, error)
+	GetSubscribers(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]model.UserId, error)
 	AddFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error
 	RemoveFriend(ctx context.Context, userId model.UserId, friendUserId model.UserId, tx *sql.Tx) error
 }
@@ -46,4 +48,23 @@ type ITransactionManager interface {
 	Begin(ctx context.Context) (*sql.Tx, error)
 	Commit(tx *sql.Tx) error
 	Rollback(tx *sql.Tx) error
+}
+
+type IFeedCache interface {
+	RecreateFeed(userId model.UserId, posts []*model.Post) error
+	GetFeed(userId model.UserId, offset, limit int) ([]*model.Post, error)
+	AddPost(userId model.UserId, post *model.Post) error
+	UpdatePost(userId model.UserId, post *model.Post) error
+}
+
+type IFeedCacheNotifier interface {
+	PublishRecreateFeedMessage(forUserId model.UserId) error
+	PublishAddNewPostToFeedMessage(forUserId model.UserId, postId model.PostId) error
+	PublishUpdatePostInFeedMessage(forUserId model.UserId, postId model.PostId) error
+}
+
+type IPostEventNotifier interface {
+	PublishPostCreatedEvent(post *model.Post) error
+	PublishPostUpdatedEvent(post *model.Post) error
+	PublishPostDeletedEvent(post *model.Post) error
 }
