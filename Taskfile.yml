@@ -35,16 +35,6 @@ tasks:
     cmds:
       - docker compose -f ./docker-compose-infra.yml up -d
 
-  compose-infra-stop:
-    desc: Stop infrastructure containers
-    cmds:
-      - docker compose -f ./docker-compose-infra.yml stop
-
-  compose-infra-start:
-    desc: Stop infrastructure containers
-    cmds:
-      - docker compose -f ./docker-compose-infra.yml start
-
   compose-infra-down:
     desc: Down infrastructure containers
     cmds:
