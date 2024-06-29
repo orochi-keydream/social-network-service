@@ -26,7 +26,7 @@ type IDialogRepository interface {
 
 type IPostRepository interface {
 	GetPosts(ctx context.Context, userIds []model.UserId, offset int, limit int, tx *sql.Tx) ([]*model.Post, error)
-	GetPostsIncludingFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]*model.Post, error)
+	GetPostsIncludingFriends(ctx context.Context, userId model.UserId, offset, limit int, tx *sql.Tx) ([]*model.Post, error)
 	GetPost(ctx context.Context, postId model.PostId, tx *sql.Tx) (*model.Post, error)
 	AddPost(ctx context.Context, post *model.Post, tx *sql.Tx) error
 	UpdatePost(ctx context.Context, post *model.Post, tx *sql.Tx) error
