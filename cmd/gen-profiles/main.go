@@ -175,7 +175,7 @@ func getFromFile(path string) []string {
 		panic("failed to read file")
 	}
 
-	strs := strings.Split(string(bytes), "\r\n")
+	strs := strings.Split(string(bytes), "\n")
 
 	return strs
 }

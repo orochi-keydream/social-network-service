@@ -20,6 +20,11 @@ tasks:
     cmds:
       - go run ./cmd/gen-profiles/main.go {{.CLI_ARGS}}
 
+  sim:
+    desk: Run activity simulation
+    cmds:
+      - go run ./cmd/sim/main.go 10 ./scripts/
+
   compose-service-up:
     desc: Up the container of the service
     cmds:
