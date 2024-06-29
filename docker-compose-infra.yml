@@ -135,6 +135,8 @@ services:
   zookeeper:
     container_name: zookeeper
     image: confluentinc/cp-zookeeper:latest
+    networks:
+      - otus-hl
     environment:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_TICK_TIME: 2000
@@ -155,6 +157,8 @@ services:
   kafka1:
     container_name: kafka1
     image: confluentinc/cp-kafka:latest
+    networks:
+      - otus-hl
     healthcheck:
       test: ps augwwx | egrep [S]upportedKafka
     depends_on:
@@ -173,6 +177,8 @@ services:
   kafka2:
     container_name: kafka2
     image: confluentinc/cp-kafka:latest
+    networks:
+      - otus-hl
     healthcheck:
       test: ps augwwx | egrep [S]upportedKafka
     depends_on:
@@ -191,6 +197,8 @@ services:
   kafka3:
     container_name: kafka3
     image: confluentinc/cp-kafka:latest
+    networks:
+      - otus-hl
     healthcheck:
       test: ps augwwx | egrep [S]upportedKafka
     depends_on:
@@ -209,6 +217,8 @@ services:
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
+    networks:
+      - otus-hl
     ports:
       - "8082:8080"
     environment:
@@ -217,5 +227,7 @@ services:
   redis:
     container_name: redis
     image: redis
+    networks:
+      - otus-hl
     ports:
       - "6379:6379"
