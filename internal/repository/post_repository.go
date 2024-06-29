@@ -81,7 +81,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, userIds []model.UserId, o
 	return posts, nil
 }
 
-func (r *PostRepository) GetPostsIncludingFriends(ctx context.Context, userId model.UserId, tx *sql.Tx) ([]*model.Post, error) {
+func (r *PostRepository) GetPostsIncludingFriends(ctx context.Context, userId model.UserId, offset, limit int, tx *sql.Tx) ([]*model.Post, error) {
 	const query = `
 		select
 			p.post_id,
@@ -92,6 +92,8 @@ func (r *PostRepository) GetPostsIncludingFriends(ctx context.Context, userId mo
 		left join user_friends uf on p.user_id = uf.friend_user_id
 		where uf.user_id = $1 or p.user_id = $1
 		order by p.published_at
+		offset $2
+		limit $3
 		`
 
 	var ec IExecutionContext
@@ -102,7 +104,7 @@ func (r *PostRepository) GetPostsIncludingFriends(ctx context.Context, userId mo
 		ec = tx
 	}
 
-	rows, err := ec.QueryContext(ctx, query, userId)
+	rows, err := ec.QueryContext(ctx, query, userId, offset, limit)
 
 	if err != nil {
 		return nil, err
