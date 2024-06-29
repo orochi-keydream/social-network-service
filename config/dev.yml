@@ -1,7 +1,7 @@
 kafka_brokers:
-  - localhost:9091
-  - localhost:9092
-  - localhost:9093
+  - kafka1:29091
+  - kafka2:29092
+  - kafka3:29093
 
 producers:
   posts:
@@ -26,4 +26,4 @@ database:
   dbname: social_network_db
 
 redis:
-  connection_string: "localhost:6379"
+  connection_string: "redis:6379"
