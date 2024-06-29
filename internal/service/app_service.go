@@ -303,7 +303,13 @@ func (s *AppService) ReadPosts(ctx context.Context, cmd model.ReadPostsCommand) 
 		}
 	}
 
-	posts, err := s.feedCache.GetFeed(user.UserId, cmd.Offset, cmd.Limit)
+	var posts []*model.Post
+
+	if cmd.Offset+cmd.Limit > 1000 {
+		posts, err = s.postRepository.GetPostsIncludingFriends(ctx, cmd.UserId, cmd.Offset, cmd.Limit, nil)
+	} else {
+		posts, err = s.feedCache.GetFeed(user.UserId, cmd.Offset, cmd.Limit)
+	}
 
 	if err != nil {
 		return nil, err
