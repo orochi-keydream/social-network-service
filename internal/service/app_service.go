@@ -22,6 +22,7 @@ type AppServiceConfiguration struct {
 	FeedCache             IFeedCache
 	FeedCacheNotifier     IFeedCacheNotifier
 	PostEventNotifier     IPostEventNotifier
+	UserNotifier          IUserNotifier
 	TransactionManager    ITransactionManager
 }
 
@@ -35,6 +36,7 @@ type AppService struct {
 	feedCache             IFeedCache
 	cacheNotifier         IFeedCacheNotifier
 	postEventNotifier     IPostEventNotifier
+	userNotifier          IUserNotifier
 	transactionManager    ITransactionManager
 }
 
@@ -49,6 +51,7 @@ func NewAppService(config *AppServiceConfiguration) *AppService {
 		feedCache:             config.FeedCache,
 		cacheNotifier:         config.FeedCacheNotifier,
 		postEventNotifier:     config.PostEventNotifier,
+		userNotifier:          config.UserNotifier,
 		transactionManager:    config.TransactionManager,
 	}
 }
@@ -590,6 +593,12 @@ func (s *AppService) AddNewPostToFeedCache(cmd model.AddNewPostToFeedCacheComman
 
 	err = s.feedCache.AddPost(cmd.UserId, post)
 
+	if err != nil {
+		return err
+	}
+
+	err = s.userNotifier.NotifyNewPostAppeared(ctx, cmd.UserId, post)
+
 	return err
 }
 
@@ -603,6 +612,12 @@ func (s *AppService) UpdatePostInFeedCache(cmd model.UpdatePostInFeedCacheComman
 	}
 
 	err = s.feedCache.UpdatePost(cmd.UserId, post)
+
+	if err != nil {
+		return err
+	}
+
+	s.userNotifier.NotifyPostUpdated(ctx, cmd.UserId, post)
 
 	return err
 }

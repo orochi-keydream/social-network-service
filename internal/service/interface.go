@@ -68,3 +68,8 @@ type IPostEventNotifier interface {
 	PublishPostUpdatedEvent(post *model.Post) error
 	PublishPostDeletedEvent(post *model.Post) error
 }
+
+type IUserNotifier interface {
+	NotifyNewPostAppeared(ctx context.Context, userId model.UserId, post *model.Post) error
+	NotifyPostUpdated(ctx context.Context, userId model.UserId, post *model.Post) error
+}

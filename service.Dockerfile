@@ -21,6 +21,7 @@ COPY --from=builder /app/server /app/server
 COPY ./config/dev.yml /app/
 
 EXPOSE 8080
+EXPOSE 8081
 EXPOSE 2112
 
 CMD [ "/app/server", "--config", "/app/dev.yml" ]

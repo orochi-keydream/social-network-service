@@ -7,6 +7,7 @@
   * [3.2 Run using Docker](#32-run-using-docker)
 * [4 Explore the functionality](#4-explore-the-functionality)
 * [5 Activity simulation](#5-activity-simulation)
+* [6 Notifications via WebSockets](#6-notifications-via-websockets)
 
 ## 1 Prerequisites
 
@@ -184,3 +185,18 @@ At the moment users can:
 * Read feed
 * Add friends
 * Remove friends
+
+## 6 Notifications via WebSockets
+
+http://localhost:8081/hub endpoint is used to connect to the service using WebSocket that allows you to be notified in realtime. You can use Postman or other tools to check, how it works.
+
+> NOTE
+> 
+> `/hub` endpoint requires authorization, so you need to add `Authorization` header with `Bearer {token}` value, where `{token}` is a JWT token that you are given when you call `/login` endpoint.
+
+Currently, the service sends the following types of messages:
+
+* A new post appeared
+* An existing post updated
+
+The short description of the process is described [here](https://github.com/orochi-keydream/social-network-service/wiki/WebSocket-scheme-description).
