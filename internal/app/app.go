@@ -20,6 +20,7 @@ import (
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
+	"social-network-service/internal/ws"
 	"sync"
 	"syscall"
 
@@ -74,6 +75,9 @@ func Run() {
 
 	feedCache := cache.NewFeedCache(redisClient)
 
+	wsHub := ws.NewHub()
+	userNotifier := ws.NewUserNotifier(redisClient, wsHub)
+
 	appServiceConfig := &service.AppServiceConfiguration{
 		TokenGenerator:        jwtService,
 		UserRepository:        userRepository,
@@ -84,10 +88,14 @@ func Run() {
 		FeedCache:             feedCache,
 		FeedCacheNotifier:     feedCacheNotifier,
 		PostEventNotifier:     postEventNotifier,
+		UserNotifier:          userNotifier,
 		TransactionManager:    tm,
 	}
 
 	appService := service.NewAppService(appServiceConfig)
+
+	go wsHub.Run(ctx)
+	go userNotifier.Subscribe(ctx)
 
 	engine := gin.Default()
 
@@ -120,6 +128,12 @@ func Run() {
 
 	go func() {
 		engine.Run(":8080")
+	}()
+
+	go func() {
+		hubMux := http.NewServeMux()
+		hubMux.Handle("/hub", ws.HandleHub(wsHub, jwtService))
+		http.ListenAndServe(":8081", hubMux)
 	}()
 
 	sigint := make(chan os.Signal, 1)
