@@ -12,6 +12,7 @@ type Config struct {
 	Consumers    ConsumerConfigs `yaml:"consumers"`
 	Database     DatabaseConfig  `yaml:"database"`
 	Redis        RedisConfig     `yaml:"redis"`
+	Tarantool    TarantoolConfig `yaml:"tarantool"`
 }
 
 type ProducerConfigs struct {
@@ -43,6 +44,10 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
+	ConnectionString string `yaml:"connection_string"`
+}
+
+type TarantoolConfig struct {
 	ConnectionString string `yaml:"connection_string"`
 }
 

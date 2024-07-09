@@ -13,46 +13,49 @@ import (
 )
 
 type AppServiceConfiguration struct {
-	TokenGenerator        ITokenGenerator
-	UserRepository        IUserRepository
-	UserAccountRepository IUserAccountRepository
-	UserFriendRepository  IUserFriendRepository
-	DialogRepository      IDialogRepository
-	PostRepository        IPostRepository
-	FeedCache             IFeedCache
-	FeedCacheNotifier     IFeedCacheNotifier
-	PostEventNotifier     IPostEventNotifier
-	UserNotifier          IUserNotifier
-	TransactionManager    ITransactionManager
+	TokenGenerator            ITokenGenerator
+	UserRepository            IUserRepository
+	UserAccountRepository     IUserAccountRepository
+	UserFriendRepository      IUserFriendRepository
+	DialogRepository          IDialogRepository
+	DialogRepositoryTarantool IDialogRepositoryTarantool
+	PostRepository            IPostRepository
+	FeedCache                 IFeedCache
+	FeedCacheNotifier         IFeedCacheNotifier
+	PostEventNotifier         IPostEventNotifier
+	UserNotifier              IUserNotifier
+	TransactionManager        ITransactionManager
 }
 
 type AppService struct {
-	tokenGenerator        ITokenGenerator
-	userRepository        IUserRepository
-	userAccountRepository IUserAccountRepository
-	userFriendRepository  IUserFriendRepository
-	dialogRepository      IDialogRepository
-	postRepository        IPostRepository
-	feedCache             IFeedCache
-	cacheNotifier         IFeedCacheNotifier
-	postEventNotifier     IPostEventNotifier
-	userNotifier          IUserNotifier
-	transactionManager    ITransactionManager
+	tokenGenerator            ITokenGenerator
+	userRepository            IUserRepository
+	userAccountRepository     IUserAccountRepository
+	userFriendRepository      IUserFriendRepository
+	dialogRepository          IDialogRepository
+	dialogRepositoryTarantool IDialogRepositoryTarantool
+	postRepository            IPostRepository
+	feedCache                 IFeedCache
+	cacheNotifier             IFeedCacheNotifier
+	postEventNotifier         IPostEventNotifier
+	userNotifier              IUserNotifier
+	transactionManager        ITransactionManager
 }
 
 func NewAppService(config *AppServiceConfiguration) *AppService {
 	return &AppService{
-		tokenGenerator:        config.TokenGenerator,
-		userRepository:        config.UserRepository,
-		userAccountRepository: config.UserAccountRepository,
-		userFriendRepository:  config.UserFriendRepository,
-		dialogRepository:      config.DialogRepository,
-		postRepository:        config.PostRepository,
-		feedCache:             config.FeedCache,
-		cacheNotifier:         config.FeedCacheNotifier,
-		postEventNotifier:     config.PostEventNotifier,
-		userNotifier:          config.UserNotifier,
-		transactionManager:    config.TransactionManager,
+		tokenGenerator:            config.TokenGenerator,
+		userRepository:            config.UserRepository,
+		userAccountRepository:     config.UserAccountRepository,
+		userFriendRepository:      config.UserFriendRepository,
+		dialogRepository:          config.DialogRepository,
+		dialogRepositoryTarantool: config.DialogRepositoryTarantool,
+		postRepository:            config.PostRepository,
+		feedCache:                 config.FeedCache,
+		cacheNotifier:             config.FeedCacheNotifier,
+		postEventNotifier:         config.PostEventNotifier,
+		userNotifier:              config.UserNotifier,
+		transactionManager:        config.TransactionManager,
 	}
 }
 
@@ -275,7 +278,9 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 		SentAt:     time.Now().UTC(),
 	}
 
-	_, err = s.dialogRepository.AddMessage(ctx, msg, nil)
+	// _, err = s.dialogRepository.AddMessage(ctx, msg, nil)
+
+	_, err = s.dialogRepositoryTarantool.AddMessage(ctx, msg)
 
 	if err != nil {
 		return err
@@ -285,7 +290,8 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 }
 
 func (s *AppService) GetMessages(ctx context.Context, cmd model.GetMessagesCommand) ([]*model.Message, error) {
-	messages, err := s.dialogRepository.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId, nil)
+	// messages, err := s.dialogRepository.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId, nil)
+	messages, err := s.dialogRepositoryTarantool.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId)
 
 	if err != nil {
 		return nil, err

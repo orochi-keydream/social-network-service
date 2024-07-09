@@ -23,11 +23,13 @@ import (
 	"social-network-service/internal/ws"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"github.com/tarantool/go-tarantool/v2"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -52,6 +54,9 @@ func Run() {
 	userFriendRepository := repository.NewUserFriendRepository(cf)
 	dialogRepository := repository.NewDialogRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
+
+	tarantoolConn := createTarantoolConnection(ctx, cfg)
+	dialogRepositoryTarantool := repository.NewDialogRepositoryTarantool(tarantoolConn)
 
 	jwtService := service.NewJwtService()
 
@@ -79,17 +84,18 @@ func Run() {
 	userNotifier := ws.NewUserNotifier(redisClient, wsHub)
 
 	appServiceConfig := &service.AppServiceConfiguration{
-		TokenGenerator:        jwtService,
-		UserRepository:        userRepository,
-		UserAccountRepository: userAccountRepository,
-		UserFriendRepository:  userFriendRepository,
-		DialogRepository:      dialogRepository,
-		PostRepository:        postRepository,
-		FeedCache:             feedCache,
-		FeedCacheNotifier:     feedCacheNotifier,
-		PostEventNotifier:     postEventNotifier,
-		UserNotifier:          userNotifier,
-		TransactionManager:    tm,
+		TokenGenerator:            jwtService,
+		UserRepository:            userRepository,
+		UserAccountRepository:     userAccountRepository,
+		UserFriendRepository:      userFriendRepository,
+		DialogRepository:          dialogRepository,
+		DialogRepositoryTarantool: dialogRepositoryTarantool,
+		PostRepository:            postRepository,
+		FeedCache:                 feedCache,
+		FeedCacheNotifier:         feedCacheNotifier,
+		PostEventNotifier:         postEventNotifier,
+		UserNotifier:              userNotifier,
+		TransactionManager:        tm,
 	}
 
 	appService := service.NewAppService(appServiceConfig)
@@ -186,4 +192,22 @@ func createConnectionFactory(cfg *config.Config) *database.ConnectionFactory {
 	}
 
 	return database.NewConnectionFactory(cfCfg)
+}
+
+func createTarantoolConnection(ctx context.Context, cfg *config.Config) *tarantool.Connection {
+	dialer := tarantool.NetDialer{
+		Address: cfg.Tarantool.ConnectionString,
+	}
+
+	opts := tarantool.Opts{
+		Timeout: time.Second,
+	}
+
+	conn, err := tarantool.Connect(ctx, dialer, opts)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return conn
 }

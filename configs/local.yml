@@ -27,3 +27,6 @@ database:
 
 redis:
   connection_string: "localhost:6379"
+
+tarantool:
+  connection_string: "localhost:3301"

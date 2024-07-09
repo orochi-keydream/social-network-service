@@ -1,0 +1,9 @@
+services:
+  tarantool:
+    container_name: tarantool
+    image: tarantool/tarantool
+    ports:
+      - "3301:3301"
+    volumes:
+      - './tarantool/myapp.lua:/opt/tarantool/myapp.lua'
+    command: [ "tarantool", "/opt/tarantool/myapp.lua" ]

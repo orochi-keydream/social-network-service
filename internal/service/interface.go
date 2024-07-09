@@ -24,6 +24,11 @@ type IDialogRepository interface {
 	GetMessages(ctx context.Context, fromUserId model.UserId, toUserId model.UserId, tx *sql.Tx) ([]*model.Message, error)
 }
 
+type IDialogRepositoryTarantool interface {
+	AddMessage(ctx context.Context, msg *model.Message) (model.MessageId, error)
+	GetMessages(ctx context.Context, curUserId model.UserId, tarUserId model.UserId) ([]*model.Message, error)
+}
+
 type IPostRepository interface {
 	GetPosts(ctx context.Context, userIds []model.UserId, offset int, limit int, tx *sql.Tx) ([]*model.Post, error)
 	GetPostsIncludingFriends(ctx context.Context, userId model.UserId, offset, limit int, tx *sql.Tx) ([]*model.Post, error)
