@@ -231,3 +231,14 @@ services:
       - otus-hl
     ports:
       - "6379:6379"
+
+  tarantool:
+    container_name: tarantool
+    image: tarantool/tarantool
+    networks:
+      - otus-hl
+    ports:
+      - "3301:3301"
+    volumes:
+      - './tarantool/myapp.lua:/opt/tarantool/myapp.lua'
+    command: [ "tarantool", "/opt/tarantool/myapp.lua" ]
