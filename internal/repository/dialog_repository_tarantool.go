@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"social-network-service/internal/model"
 	"time"
 
@@ -97,24 +96,16 @@ func (r *DialogRepositoryTarantool) GetMessages(ctx context.Context, curUserId m
 func (m *getMessageResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 	var err error
 
-	l, err := d.DecodeArrayLen()
+	_, err = d.DecodeArrayLen()
 
 	if err != nil {
 		return err
 	}
 
-	if l != 1 {
-		return fmt.Errorf("wrong message format")
-	}
-
-	ml, err := d.DecodeMapLen()
+	_, err = d.DecodeMapLen()
 
 	if err != nil {
 		return err
-	}
-
-	if ml != 2 {
-		return fmt.Errorf("wrong message format")
 	}
 
 	err = d.Skip()
@@ -144,14 +135,10 @@ func (m *getMessageResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 	messages := make([]getMessageResponseItem, 0, rowCount)
 
 	for i := 0; i < rowCount; i++ {
-		l3, err := d.DecodeArrayLen()
+		_, err := d.DecodeArrayLen()
 
 		if err != nil {
 			return err
-		}
-
-		if l3 != 5 {
-			return fmt.Errorf("wrong row format")
 		}
 
 		messageId, err := d.DecodeInt64()
@@ -203,26 +190,16 @@ func (m *getMessageResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 func (m *addMessageResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 	var err error
 
-	l, err := d.DecodeArrayLen()
+	_, err = d.DecodeArrayLen()
 
 	if err != nil {
 		return err
 	}
 
-	if l != 1 {
-		return fmt.Errorf("wrong response format")
-	}
-
-	l2, err := d.DecodeArrayLen()
+	_, err = d.DecodeArrayLen()
 
 	if err != nil {
 		return err
-	}
-
-	fmt.Println(l2)
-
-	if l != 1 {
-		return fmt.Errorf("wrong response format")
 	}
 
 	value, err := d.DecodeInt64()
