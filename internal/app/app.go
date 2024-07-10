@@ -84,6 +84,7 @@ func Run() {
 	userNotifier := ws.NewUserNotifier(redisClient, wsHub)
 
 	appServiceConfig := &service.AppServiceConfiguration{
+		Config:                    cfg,
 		TokenGenerator:            jwtService,
 		UserRepository:            userRepository,
 		UserAccountRepository:     userAccountRepository,
@@ -162,7 +163,7 @@ func Run() {
 	log.Println("graceful shutdown finished, have a nice day")
 }
 
-func createConnectionFactory(cfg *config.Config) *database.ConnectionFactory {
+func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
 	dbCfg := cfg.Database
 
 	cfCfg := database.ConnectionFactoryConfig{
@@ -194,7 +195,7 @@ func createConnectionFactory(cfg *config.Config) *database.ConnectionFactory {
 	return database.NewConnectionFactory(cfCfg)
 }
 
-func createTarantoolConnection(ctx context.Context, cfg *config.Config) *tarantool.Connection {
+func createTarantoolConnection(ctx context.Context, cfg config.Config) *tarantool.Connection {
 	dialer := tarantool.NetDialer{
 		Address: cfg.Tarantool.ConnectionString,
 	}
