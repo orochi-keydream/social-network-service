@@ -99,12 +99,22 @@ Run the following command:
 go run ./cmd/app/main.go --config ./config/local.yml
 ```
 
+You can also provide `--use-tarantool` flag to use Tarantool as a storage for dialogues.
+
 ### 3.2 Run using Docker
 
-Run the following command:
+Depending on preferred storage for dialogues (PostgreSQL or Tarantool) you can run the service using one of two options:
 
-```bash
-docker compose -f ./docker-compose-service.yml up -d
+Option 1 - Run the service that uses PostgreSQL for dialogues:
+
+```sh
+docker compose -f ./docker-compose-service-without-tarantool.yml up -d
+```
+
+Option 2 - Run the service that uses Tarantool for dialogues:
+
+```sh
+docker compose -f ./docker-compose-service-with-tarantool.yml up -d
 ```
 
 ## 4 Explore the functionality
