@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"social-network-service/internal/config"
 	"social-network-service/internal/model"
 	"time"
 
@@ -13,46 +14,54 @@ import (
 )
 
 type AppServiceConfiguration struct {
-	TokenGenerator        ITokenGenerator
-	UserRepository        IUserRepository
-	UserAccountRepository IUserAccountRepository
-	UserFriendRepository  IUserFriendRepository
-	DialogRepository      IDialogRepository
-	PostRepository        IPostRepository
-	FeedCache             IFeedCache
-	FeedCacheNotifier     IFeedCacheNotifier
-	PostEventNotifier     IPostEventNotifier
-	UserNotifier          IUserNotifier
-	TransactionManager    ITransactionManager
+	Config                    config.Config
+	TokenGenerator            ITokenGenerator
+	UserRepository            IUserRepository
+	UserAccountRepository     IUserAccountRepository
+	UserFriendRepository      IUserFriendRepository
+	DialogRepository          IDialogRepository
+	DialogRepositoryTarantool IDialogRepositoryTarantool
+	PostRepository            IPostRepository
+	FeedCache                 IFeedCache
+	FeedCacheNotifier         IFeedCacheNotifier
+	PostEventNotifier         IPostEventNotifier
+	UserNotifier              IUserNotifier
+	TransactionManager        ITransactionManager
 }
 
 type AppService struct {
-	tokenGenerator        ITokenGenerator
-	userRepository        IUserRepository
-	userAccountRepository IUserAccountRepository
-	userFriendRepository  IUserFriendRepository
-	dialogRepository      IDialogRepository
-	postRepository        IPostRepository
-	feedCache             IFeedCache
-	cacheNotifier         IFeedCacheNotifier
-	postEventNotifier     IPostEventNotifier
-	userNotifier          IUserNotifier
-	transactionManager    ITransactionManager
+	tokenGenerator            ITokenGenerator
+	userRepository            IUserRepository
+	userAccountRepository     IUserAccountRepository
+	userFriendRepository      IUserFriendRepository
+	dialogRepository          IDialogRepository
+	dialogRepositoryTarantool IDialogRepositoryTarantool
+	postRepository            IPostRepository
+	feedCache                 IFeedCache
+	cacheNotifier             IFeedCacheNotifier
+	postEventNotifier         IPostEventNotifier
+	userNotifier              IUserNotifier
+	transactionManager        ITransactionManager
+
+	useTarantool bool
 }
 
-func NewAppService(config *AppServiceConfiguration) *AppService {
+func NewAppService(cfg *AppServiceConfiguration) *AppService {
 	return &AppService{
-		tokenGenerator:        config.TokenGenerator,
-		userRepository:        config.UserRepository,
-		userAccountRepository: config.UserAccountRepository,
-		userFriendRepository:  config.UserFriendRepository,
-		dialogRepository:      config.DialogRepository,
-		postRepository:        config.PostRepository,
-		feedCache:             config.FeedCache,
-		cacheNotifier:         config.FeedCacheNotifier,
-		postEventNotifier:     config.PostEventNotifier,
-		userNotifier:          config.UserNotifier,
-		transactionManager:    config.TransactionManager,
+		tokenGenerator:            cfg.TokenGenerator,
+		userRepository:            cfg.UserRepository,
+		userAccountRepository:     cfg.UserAccountRepository,
+		userFriendRepository:      cfg.UserFriendRepository,
+		dialogRepository:          cfg.DialogRepository,
+		dialogRepositoryTarantool: cfg.DialogRepositoryTarantool,
+		postRepository:            cfg.PostRepository,
+		feedCache:                 cfg.FeedCache,
+		cacheNotifier:             cfg.FeedCacheNotifier,
+		postEventNotifier:         cfg.PostEventNotifier,
+		userNotifier:              cfg.UserNotifier,
+		transactionManager:        cfg.TransactionManager,
+
+		useTarantool: cfg.Config.UseTarantool,
 	}
 }
 
@@ -275,7 +284,11 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 		SentAt:     time.Now().UTC(),
 	}
 
-	_, err = s.dialogRepository.AddMessage(ctx, msg, nil)
+	if s.useTarantool {
+		_, err = s.dialogRepositoryTarantool.AddMessage(ctx, msg)
+	} else {
+		_, err = s.dialogRepository.AddMessage(ctx, msg, nil)
+	}
 
 	if err != nil {
 		return err
@@ -285,7 +298,14 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 }
 
 func (s *AppService) GetMessages(ctx context.Context, cmd model.GetMessagesCommand) ([]*model.Message, error) {
-	messages, err := s.dialogRepository.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId, nil)
+	var messages []*model.Message
+	var err error
+
+	if s.useTarantool {
+		messages, err = s.dialogRepositoryTarantool.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId)
+	} else {
+		messages, err = s.dialogRepository.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId, nil)
+	}
 
 	if err != nil {
 		return nil, err

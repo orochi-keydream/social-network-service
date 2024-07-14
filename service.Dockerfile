@@ -18,7 +18,7 @@ RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -
 
 COPY --from=builder /app/server /app/server
 
-COPY ./config/dev.yml /app/
+COPY ./configs/dev.yml /app/
 
 EXPOSE 8080
 EXPOSE 8081
