@@ -12,9 +12,6 @@ type Config struct {
 	Consumers    ConsumerConfigs `yaml:"consumers"`
 	Database     DatabaseConfig  `yaml:"database"`
 	Redis        RedisConfig     `yaml:"redis"`
-	Tarantool    TarantoolConfig `yaml:"tarantool"`
-
-	UseTarantool bool
 }
 
 type ProducerConfigs struct {
@@ -49,18 +46,12 @@ type RedisConfig struct {
 	ConnectionString string `yaml:"connection_string"`
 }
 
-type TarantoolConfig struct {
-	ConnectionString string `yaml:"connection_string"`
-}
-
 var (
-	configPath   string
-	useTarantool bool
+	configPath string
 )
 
 func init() {
 	flag.StringVar(&configPath, "config", "", "Specifies the path to the config file.")
-	flag.BoolVar(&useTarantool, "use-tarantool", false, "Specifies if Tarantool DB should be used.")
 	flag.Parse()
 }
 
@@ -71,8 +62,6 @@ func LoadConfig() Config {
 
 	var config Config
 	err := cleanenv.ReadConfig(configPath, &config)
-
-	config.UseTarantool = useTarantool
 
 	if err != nil {
 		panic(err)

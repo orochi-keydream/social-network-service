@@ -28,12 +28,12 @@ tasks:
   compose-service-up:
     desc: Up the container of the service
     cmds:
-      - docker compose -f ./docker-compose-service-with-tarantool.yml up -d
+      - docker compose -f ./docker-compose-service.yml up -d
 
   compose-service-down:
     desc: Down the container of the service
     cmds:
-      - docker compose -f ./docker-compose-service-with-tarantool.yml down
+      - docker compose -f ./docker-compose-service.yml down
 
   compose-infra-up:
     desc: Up infrastructure containers

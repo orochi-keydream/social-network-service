@@ -19,10 +19,12 @@ type ConnectionFactory struct {
 	asyncDb  *sql.DB
 }
 
+const driver = "pgx"
+
 func NewConnectionFactory(cfg ConnectionFactoryConfig) *ConnectionFactory {
 	ctx := context.Background()
 
-	masterDb, err := sql.Open("pgx", cfg.MasterConnectionString)
+	masterDb, err := sql.Open(driver, cfg.MasterConnectionString)
 
 	if err != nil {
 		panic(err)
@@ -34,7 +36,7 @@ func NewConnectionFactory(cfg ConnectionFactoryConfig) *ConnectionFactory {
 		panic(err)
 	}
 
-	syncDb, err := sql.Open("pgx", cfg.SyncConnectionString)
+	syncDb, err := sql.Open(driver, cfg.SyncConnectionString)
 
 	if err != nil {
 		panic(err)
@@ -46,7 +48,7 @@ func NewConnectionFactory(cfg ConnectionFactoryConfig) *ConnectionFactory {
 		panic(err)
 	}
 
-	asyncDb, err := sql.Open("pgx", cfg.AsyncConnectionString)
+	asyncDb, err := sql.Open(driver, cfg.AsyncConnectionString)
 
 	if err != nil {
 		panic(err)

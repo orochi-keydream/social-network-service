@@ -27,6 +27,3 @@ database:
 
 redis:
   connection_string: "redis:6379"
-
-tarantool:
-  connection_string: "tarantool:3301"
