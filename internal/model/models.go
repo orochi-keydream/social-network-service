@@ -10,6 +10,8 @@ type PostId string
 
 type Gender int8
 
+type ChatId string
+
 const (
 	GenderMale Gender = iota + 1
 	GenderFemale
@@ -42,6 +44,7 @@ type RegisterUserCommand struct {
 
 type Message struct {
 	MessageId  MessageId
+	ChatId     ChatId
 	SentAt     time.Time
 	FromUserId UserId
 	ToUserId   UserId

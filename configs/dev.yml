@@ -1,7 +1,7 @@
 kafka_brokers:
-  - kafka1:29091
-  - kafka2:29092
-  - kafka3:29093
+  - social-network-service-kafka1:29091
+  - social-network-service-kafka2:29092
+  - social-network-service-kafka3:29093
 
 producers:
   posts:
@@ -16,14 +16,20 @@ consumers:
     topic: "feed_cache_commands"
 
 database:
-  host: "haproxy"
+  host: "social-network-service-haproxy"
   master_port: 15432
   sync_port: 25432
   async_port: 35432
-
+  dbname: "social_network_db"
   user: "postgres"
   password: "123"
-  dbname: social_network_db
+
+sharded_database:
+  host: "social-network-service-master"
+  port: 5432
+  dbname: "postgres"
+  user: "postgres"
+  password: ""
 
 redis:
-  connection_string: "redis:6379"
+  connection_string: "social-network-service-redis:6379"

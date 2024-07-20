@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	KafkaBrokers []string        `yaml:"kafka_brokers"`
-	Producers    ProducerConfigs `yaml:"producers"`
-	Consumers    ConsumerConfigs `yaml:"consumers"`
-	Database     DatabaseConfig  `yaml:"database"`
-	Redis        RedisConfig     `yaml:"redis"`
+	KafkaBrokers    []string              `yaml:"kafka_brokers"`
+	Producers       ProducerConfigs       `yaml:"producers"`
+	Consumers       ConsumerConfigs       `yaml:"consumers"`
+	Database        DatabaseConfig        `yaml:"database"`
+	ShardedDatabase ShardedDatabaseConfig `yaml:"sharded_database"`
+	Redis           RedisConfig           `yaml:"redis"`
 }
 
 type ProducerConfigs struct {
@@ -37,9 +38,17 @@ type DatabaseConfig struct {
 	MasterPort   int    `yaml:"master_port"`
 	SyncPort     int    `yaml:"sync_port"`
 	AsyncPort    int    `yaml:"async_port"`
+	DatabaseName string `yaml:"dbname"`
 	User         string `yaml:"user"`
 	Password     string `yaml:"password"`
+}
+
+type ShardedDatabaseConfig struct {
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
 	DatabaseName string `yaml:"dbname"`
+	User         string `yaml:"user"`
+	Password     string `yaml:"password"`
 }
 
 type RedisConfig struct {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,14 +45,16 @@ func Run() {
 	cfg := config.LoadConfig()
 
 	cf := createConnectionFactory(cfg)
+	shardedDbConn := createShardedConnection(cfg.ShardedDatabase)
 
 	tm := database.NewTransactionManager(cf)
 
 	userRepository := repository.NewUserRepository(cf)
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 	userFriendRepository := repository.NewUserFriendRepository(cf)
-	dialogRepository := repository.NewDialogRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
+
+	dialogRepository := repository.NewDialogRepository(shardedDbConn)
 
 	jwtService := service.NewJwtService()
 
@@ -187,4 +190,32 @@ func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
 	}
 
 	return database.NewConnectionFactory(cfCfg)
+}
+
+func createShardedConnection(cfg config.ShardedDatabaseConfig) *sql.DB {
+	ctx := context.Background()
+
+	const driver = "pgx"
+
+	connStr := fmt.Sprintf(
+		"host=%v port=%v user=%v password=%v dbname=%v",
+		cfg.Host,
+		cfg.Port,
+		cfg.User,
+		cfg.Password,
+		cfg.DatabaseName)
+
+	conn, err := sql.Open(driver, connStr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = conn.PingContext(ctx)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return conn
 }

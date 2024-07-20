@@ -21,7 +21,7 @@ tasks:
       - go run ./cmd/gen-profiles/main.go {{.CLI_ARGS}}
 
   sim:
-    desk: Run activity simulation
+    desc: Run activity simulation
     cmds:
       - go run ./cmd/sim/main.go 10 ./scripts/
 
@@ -45,20 +45,25 @@ tasks:
     cmds:
       - docker compose -f ./docker-compose-infra.yml down
 
-  migrate-new:
-    desc: Create new migration file
-    cmds:
-      - goose -dir ./migrations/ create untitled sql
-
   migrate-up:
     desc: Migrate database up
     cmds:
-      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
+      - goose -dir ./migrations/social_network_db/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
 
   migrate-down:
     desc: Migrate database down
     cmds:
-      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" down
+      - goose -dir ./migrations/social_network_db/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" down
+
+  migrate-shards-up:
+    desc: Migrate sharded database up
+    cmds:
+      - goose -dir ./migrations/dialogues_db/ postgres "host=localhost port=5432 user=postgres dbname=postgres" up
+
+  migrate-shards-down:
+    desc: Migrate sharded database down
+    cmds:
+      - goose -dir ./migrations/dialogues_db/ postgres "host=localhost port=5432 user=postgres dbname=postgres" down
 
   gen-swag:
     desc: Generate Swagger
