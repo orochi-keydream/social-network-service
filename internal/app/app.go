@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,7 +30,6 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
-	"github.com/tarantool/go-tarantool/v2"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -46,17 +46,16 @@ func Run() {
 	cfg := config.LoadConfig()
 
 	cf := createConnectionFactory(cfg)
+	shardedDbConn := createShardedConnection(cfg.ShardedDatabase)
 
 	tm := database.NewTransactionManager(cf)
 
 	userRepository := repository.NewUserRepository(cf)
 	userAccountRepository := repository.NewUserAccountRepository(cf)
 	userFriendRepository := repository.NewUserFriendRepository(cf)
-	dialogRepository := repository.NewDialogRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
 
-	tarantoolConn := createTarantoolConnection(ctx, cfg)
-	dialogRepositoryTarantool := repository.NewDialogRepositoryTarantool(tarantoolConn)
+	dialogRepository := repository.NewDialogRepository(shardedDbConn)
 
 	jwtService := service.NewJwtService()
 
@@ -84,19 +83,18 @@ func Run() {
 	userNotifier := ws.NewUserNotifier(redisClient, wsHub)
 
 	appServiceConfig := &service.AppServiceConfiguration{
-		Config:                    cfg,
-		TokenGenerator:            jwtService,
-		UserRepository:            userRepository,
-		UserAccountRepository:     userAccountRepository,
-		UserFriendRepository:      userFriendRepository,
-		DialogRepository:          dialogRepository,
-		DialogRepositoryTarantool: dialogRepositoryTarantool,
-		PostRepository:            postRepository,
-		FeedCache:                 feedCache,
-		FeedCacheNotifier:         feedCacheNotifier,
-		PostEventNotifier:         postEventNotifier,
-		UserNotifier:              userNotifier,
-		TransactionManager:        tm,
+		Config:                cfg,
+		TokenGenerator:        jwtService,
+		UserRepository:        userRepository,
+		UserAccountRepository: userAccountRepository,
+		UserFriendRepository:  userFriendRepository,
+		DialogRepository:      dialogRepository,
+		PostRepository:        postRepository,
+		FeedCache:             feedCache,
+		FeedCacheNotifier:     feedCacheNotifier,
+		PostEventNotifier:     postEventNotifier,
+		UserNotifier:          userNotifier,
+		TransactionManager:    tm,
 	}
 
 	appService := service.NewAppService(appServiceConfig)
@@ -195,16 +193,30 @@ func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
 	return database.NewConnectionFactory(cfCfg)
 }
 
-func createTarantoolConnection(ctx context.Context, cfg config.Config) *tarantool.Connection {
-	dialer := tarantool.NetDialer{
-		Address: cfg.Tarantool.ConnectionString,
+func createShardedConnection(cfg config.ShardedDatabaseConfig) *sql.DB {
+	ctx := context.Background()
+
+	const driver = "pgx"
+
+	connStr := fmt.Sprintf(
+		"host=%v port=%v user=%v password=%v dbname=%v",
+		cfg.Host,
+		cfg.Port,
+		cfg.User,
+		cfg.Password,
+		cfg.DatabaseName)
+
+	conn, err := sql.Open(driver, connStr)
+
+	if err != nil {
+		panic(err)
 	}
 
-	opts := tarantool.Opts{
-		Timeout: time.Second,
-	}
+	conn.SetMaxOpenConns(10)
+	conn.SetMaxIdleConns(10)
+	conn.SetConnMaxLifetime(time.Minute * 5)
 
-	conn, err := tarantool.Connect(ctx, dialer, opts)
+	err = conn.PingContext(ctx)
 
 	if err != nil {
 		panic(err)

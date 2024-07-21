@@ -1,18 +1,18 @@
 networks:
-  otus-hl:
+  social-network-service-nw:
     driver: bridge
 
 services:
   backend:
     container_name: backend
-    image: social-network-service
+    image: social-network-service:0.1.0
     build:
       context: ./
       dockerfile: service.Dockerfile
     networks:
-      - otus-hl
+      - social-network-service-nw
     ports:
       - "8080:8080"
       - "8081:8081"
       - "2112:2112"
-    command: /app/server --config /app/dev.yml --use-tarantool
+    command: /app/server --config /app/dev.yml

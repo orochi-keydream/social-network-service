@@ -3,33 +3,35 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"social-network-service/internal/metric"
 	"social-network-service/internal/model"
 )
 
 type DialogRepository struct {
-	cf IConnectionFactory
+	conn *sql.DB
 }
 
-func NewDialogRepository(cf IConnectionFactory) *DialogRepository {
+func NewDialogRepository(conn *sql.DB) *DialogRepository {
 	return &DialogRepository{
-		cf: cf,
+		conn: conn,
 	}
 }
 
 func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, tx *sql.Tx) (model.MessageId, error) {
-	const query = "insert into messages (sent_at, from_user_id, to_user_id, text) values ($1, $2, $3, $4) returning message_id"
+	const query = "insert into messages (chat_id, sent_at, from_user_id, to_user_id, text) values ($1, $2, $3, $4, $5) returning message_id"
 
 	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.cf.GetMaster()
+		ec = r.conn
 	} else {
 		ec = tx
 	}
 
-	row := ec.QueryRowContext(ctx, query, msg.SentAt, msg.FromUserId, msg.ToUserId, msg.Text)
+	row := ec.QueryRowContext(ctx, query, msg.ChatId, msg.SentAt, msg.FromUserId, msg.ToUserId, msg.Text)
 
 	if row.Err() != nil {
+		metric.IncAddMessageErrors()
 		return 0, row.Err()
 	}
 
@@ -43,20 +45,32 @@ func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, t
 	return messageId, nil
 }
 
-func (r *DialogRepository) GetMessages(ctx context.Context, fromUserId model.UserId, toUserId model.UserId, tx *sql.Tx) ([]*model.Message, error) {
-	const query = "select message_id, sent_at, from_user_id, to_user_id, text from messages where (from_user_id = $1 and to_user_id = $2) or (from_user_id = $2 and to_user_id = $1) order by sent_at desc"
+func (r *DialogRepository) GetMessages(ctx context.Context, chatId model.ChatId, tx *sql.Tx) ([]*model.Message, error) {
+	const query = `
+		select
+			message_id,
+			chat_id,
+			sent_at,
+			from_user_id,
+			to_user_id,
+			text
+		from messages
+		where chat_id = $1
+		order by sent_at desc
+		`
 
 	var ec IExecutionContext
 
 	if tx == nil {
-		ec = r.cf.GetMaster()
+		ec = r.conn
 	} else {
 		ec = tx
 	}
 
-	rows, err := ec.QueryContext(ctx, query, fromUserId, toUserId)
+	rows, err := ec.QueryContext(ctx, query, chatId)
 
 	if err != nil {
+		metric.IncGetMessagesErrors()
 		return nil, err
 	}
 
@@ -68,7 +82,7 @@ func (r *DialogRepository) GetMessages(ctx context.Context, fromUserId model.Use
 
 	for rows.Next() {
 		var msg model.Message
-		err = rows.Scan(&msg.MessageId, &msg.SentAt, &msg.FromUserId, &msg.ToUserId, &msg.Text)
+		err = rows.Scan(&msg.MessageId, &msg.ChatId, &msg.SentAt, &msg.FromUserId, &msg.ToUserId, &msg.Text)
 
 		if err != nil {
 			return nil, err
