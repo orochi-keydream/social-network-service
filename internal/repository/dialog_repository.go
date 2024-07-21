@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"social-network-service/internal/metric"
 	"social-network-service/internal/model"
 )
 
@@ -30,6 +31,7 @@ func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, t
 	row := ec.QueryRowContext(ctx, query, msg.ChatId, msg.SentAt, msg.FromUserId, msg.ToUserId, msg.Text)
 
 	if row.Err() != nil {
+		metric.IncAddMessageErrors()
 		return 0, row.Err()
 	}
 
@@ -44,7 +46,18 @@ func (r *DialogRepository) AddMessage(ctx context.Context, msg *model.Message, t
 }
 
 func (r *DialogRepository) GetMessages(ctx context.Context, chatId model.ChatId, tx *sql.Tx) ([]*model.Message, error) {
-	const query = "select message_id, chat_id, sent_at, from_user_id, to_user_id, text from messages where chat_id = $1 order by sent_at desc"
+	const query = `
+		select
+			message_id,
+			chat_id,
+			sent_at,
+			from_user_id,
+			to_user_id,
+			text
+		from messages
+		where chat_id = $1
+		order by sent_at desc
+		`
 
 	var ec IExecutionContext
 
@@ -57,6 +70,7 @@ func (r *DialogRepository) GetMessages(ctx context.Context, chatId model.ChatId,
 	rows, err := ec.QueryContext(ctx, query, chatId)
 
 	if err != nil {
+		metric.IncGetMessagesErrors()
 		return nil, err
 	}
 
