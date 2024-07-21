@@ -24,6 +24,7 @@ import (
 	"social-network-service/internal/ws"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -210,6 +211,10 @@ func createShardedConnection(cfg config.ShardedDatabaseConfig) *sql.DB {
 	if err != nil {
 		panic(err)
 	}
+
+	conn.SetMaxOpenConns(10)
+	conn.SetMaxIdleConns(10)
+	conn.SetConnMaxLifetime(time.Minute * 5)
 
 	err = conn.PingContext(ctx)
 
