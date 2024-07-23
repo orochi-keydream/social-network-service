@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,8 +13,10 @@ import (
 	"social-network-service/internal/api/post"
 	"social-network-service/internal/api/user"
 	"social-network-service/internal/cache"
+	"social-network-service/internal/client"
 	"social-network-service/internal/config"
 	"social-network-service/internal/database"
+	"social-network-service/internal/grpc/dialogue"
 	"social-network-service/internal/kafka/consumer"
 	"social-network-service/internal/kafka/producer"
 	"social-network-service/internal/middleware"
@@ -24,12 +25,13 @@ import (
 	"social-network-service/internal/ws"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -46,7 +48,6 @@ func Run() {
 	cfg := config.LoadConfig()
 
 	cf := createConnectionFactory(cfg)
-	shardedDbConn := createShardedConnection(cfg.ShardedDatabase)
 
 	tm := database.NewTransactionManager(cf)
 
@@ -55,7 +56,15 @@ func Run() {
 	userFriendRepository := repository.NewUserFriendRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
 
-	dialogRepository := repository.NewDialogRepository(shardedDbConn)
+	grpcClient, err := grpc.NewClient("localhost:8084", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	if err != nil {
+		panic(err)
+	}
+
+	dialogueGrpcClient := dialogue.NewDialogueServiceClient(grpcClient)
+
+	dialogueClient := client.NewDialogueClient(dialogueGrpcClient)
 
 	jwtService := service.NewJwtService()
 
@@ -88,8 +97,8 @@ func Run() {
 		UserRepository:        userRepository,
 		UserAccountRepository: userAccountRepository,
 		UserFriendRepository:  userFriendRepository,
-		DialogRepository:      dialogRepository,
 		PostRepository:        postRepository,
+		DialogueServiceClient: dialogueClient,
 		FeedCache:             feedCache,
 		FeedCacheNotifier:     feedCacheNotifier,
 		PostEventNotifier:     postEventNotifier,
@@ -191,36 +200,4 @@ func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
 	}
 
 	return database.NewConnectionFactory(cfCfg)
-}
-
-func createShardedConnection(cfg config.ShardedDatabaseConfig) *sql.DB {
-	ctx := context.Background()
-
-	const driver = "pgx"
-
-	connStr := fmt.Sprintf(
-		"host=%v port=%v user=%v password=%v dbname=%v",
-		cfg.Host,
-		cfg.Port,
-		cfg.User,
-		cfg.Password,
-		cfg.DatabaseName)
-
-	conn, err := sql.Open(driver, connStr)
-
-	if err != nil {
-		panic(err)
-	}
-
-	conn.SetMaxOpenConns(10)
-	conn.SetMaxIdleConns(10)
-	conn.SetConnMaxLifetime(time.Minute * 5)
-
-	err = conn.PingContext(ctx)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return conn
 }
