@@ -8,7 +8,6 @@
 * [4 Explore the functionality](#4-explore-the-functionality)
 * [5 Activity simulation](#5-activity-simulation)
 * [6 Notifications via WebSockets](#6-notifications-via-websockets)
-* [7 Scaling sharded database](#7-scaling-sharded-database)
 
 ## 1 Prerequisites
 
@@ -30,7 +29,11 @@ brew install goose
 
 ## 2 Prepare the environment
 
-#### Step 1 - Up containers
+#### Step 1 - Run dependencies
+
+Go to [dialogue-service repository](https://github.com/orochi-keydream/dialogue-service/tree/main) and perform all steps in sections [2 Prepare the environment](https://github.com/orochi-keydream/dialogue-service/blob/main/README.md#2-prepare-the-environment) and [3 Run the service](https://github.com/orochi-keydream/dialogue-service/blob/main/README.md#3-run-the-service).
+
+#### Step 2 - Up containers
 
 Run the following command to up all infrastructure containers.
 
@@ -38,7 +41,7 @@ Run the following command to up all infrastructure containers.
 docker compose -f ./docker-compose-infra.yml up -d
 ```
 
-#### Step 2 - Prepare database
+#### Step 3 - Prepare database
 
 Using http://localhost:7000/, determine which PostgreSQL node is master and run the following commands (replace `sosical-network-service-postgres0` if needed).
 
@@ -49,7 +52,7 @@ create database social_network_db;
 exit
 ```
 
-#### Step 3 - Configure Patroni cluster
+#### Step 4 - Configure Patroni cluster
 
 Staying inside the container, run the command below to change Patroni configuration.
 
@@ -67,17 +70,15 @@ Save and exit from the editor (type `:wq`, then press `Enter`). Accept the chang
 
 Make sure that master, sync and async replicas are available on http://localhost:7000/. Note that it may take some time before changes are applied on the page.
 
-#### Step 4 - Run migrations
+#### Step 5 - Run migrations
 
 Execute the commands below to apply migrations:
 
 ```bash
-goose -dir ./migrations/social_network_db/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
-goose -dir ./migrations/dialogues_db/ postgres "host=localhost port=5432 user=postgres dbname=postgres" up
-
+goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
 ```
 
-#### Step 5 - Configure topics (optional)
+#### Step 6 - Configure topics (optional)
 
 > NOTE
 > 
@@ -203,56 +204,3 @@ Currently, the service sends the following types of messages:
 * An existing post updated
 
 The short description of the process is described [here](https://github.com/orochi-keydream/social-network-service/wiki/WebSocket-scheme-description).
-
-## 7 Scaling sharded database
-
-> NOTE
->
-> By default WAL level is `replica` which should be changed to `logical`. Provided docker compose file sets WAL level to `logical` at database initialization step.
-
-The database for dialogues is sharded by Citus. You can scale the number of workers, DB instances that store dialogue messages, using the following command:
-
-```bash
-docker compose -f .\docker-compose-infra.yml up -d --scale worker=3
-```
-Make sure that the master node can see new workers. Go inside the container and perform the commands bellow.
-
-```bash
-docker exec -it social-network-service-master pgsql -U postgres
-select master_get_active_worker_nodes();
-```
-
-The result should look like below:
-
-```
-     master_get_active_worker_nodes     
-----------------------------------------
- (social-network-service-worker-1,5432)
- (social-network-service-worker-2,5432)
- (social-network-service-worker-3,5432)
-```
-
-Then it is necessary to run the following command to run rebalancing process.
-
-```
-select citus_rebalance_start();
-```
-
-You can observe the status of rebalancing executing the following query.
-
-```
-select * from citus_rebalance_status();
-```
-
-When rebalancing is finished successfully, this query return the response like this (the format of the response is changed to make it more readable).
-
-```
--[ RECORD 1 ]-------------------------------------------------
-job_id      | 1
-state       | finished
-job_type    | rebalance
-description | Rebalance all colocation groups
-started_at  | 2024-07-21 09:39:47.47983+00
-finished_at | 2024-07-21 09:40:24.939598+00
-details     | {"tasks": [], "task_state_counts": {"done": 21}}
-```
