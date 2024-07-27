@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,8 +17,10 @@ import (
 	"social-network-service/internal/config"
 	"social-network-service/internal/database"
 	"social-network-service/internal/grpc/dialogue"
+	"social-network-service/internal/interceptor"
 	"social-network-service/internal/kafka/consumer"
 	"social-network-service/internal/kafka/producer"
+	"social-network-service/internal/log"
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
@@ -47,6 +49,8 @@ func Run() {
 
 	cfg := config.LoadConfig()
 
+	addLogger()
+
 	cf := createConnectionFactory(cfg)
 
 	tm := database.NewTransactionManager(cf)
@@ -56,7 +60,11 @@ func Run() {
 	userFriendRepository := repository.NewUserFriendRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
 
-	grpcClient, err := grpc.NewClient(cfg.GrpcClients.DialogueServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcClient, err := grpc.NewClient(
+		cfg.GrpcClients.DialogueServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.RequestIdInterceptor),
+	)
 
 	if err != nil {
 		panic(err)
@@ -111,11 +119,16 @@ func Run() {
 	go wsHub.Run(ctx)
 	go userNotifier.Subscribe(ctx)
 
-	engine := gin.Default()
+	engine := gin.New()
+	engine.Use(gin.Recovery())
 
+	requestIdMiddleware := middleware.NewRequestIdMiddleware()
+	loggingMiddleware := middleware.NewLoggingMiddleware()
 	errorHandlingMiddleware := middleware.NewErrorHandlingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
+	engine.Use(requestIdMiddleware)
+	engine.Use(loggingMiddleware)
 	engine.Use(errorHandlingMiddleware)
 
 	account.RegisterAccountEndpoints(appService, engine)
@@ -158,16 +171,23 @@ func Run() {
 
 	select {
 	case <-sigint:
-		log.Println("SIGTERM received, graceful shutdown started")
+		slog.Info("SIGINT received, graceful shutdown started")
 		cancel()
 	case <-sigterm:
-		log.Println("SIGTERM received, graceful shutdown started")
+		slog.Info("SIGTERM received, graceful shutdown started")
 		cancel()
 	}
 
 	wg.Wait()
 
-	log.Println("graceful shutdown finished, have a nice day")
+	slog.Info("graceful shutdown finished, have a nice day")
+}
+
+func addLogger() {
+	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
+	contextHandler := log.NewContextHandler(jsonHandler)
+	logger := slog.New(contextHandler)
+	slog.SetDefault(logger)
 }
 
 func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {

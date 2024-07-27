@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"social-network-service/internal/model"
 
@@ -22,7 +22,7 @@ func NewErrorHandlingMiddleware() gin.HandlerFunc {
 		var a *model.ClientError
 
 		if errors.As(err, &a) {
-			log.Println(err)
+			slog.ErrorContext(c.Request.Context(), err.Error())
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -30,7 +30,7 @@ func NewErrorHandlingMiddleware() gin.HandlerFunc {
 		var b *model.UnauthenticatedError
 
 		if errors.As(err, &b) {
-			log.Println(err)
+			slog.ErrorContext(c.Request.Context(), err.Error())
 			c.Status(http.StatusUnauthorized)
 			return
 		}
@@ -38,7 +38,7 @@ func NewErrorHandlingMiddleware() gin.HandlerFunc {
 		var d *model.ForbiddenError
 
 		if errors.As(err, &d) {
-			log.Println(err)
+			slog.ErrorContext(c.Request.Context(), err.Error())
 			c.Status(http.StatusForbidden)
 			return
 		}
@@ -46,7 +46,7 @@ func NewErrorHandlingMiddleware() gin.HandlerFunc {
 		var f *model.NotFoundError
 
 		if errors.As(err, &f) {
-			log.Println(err)
+			slog.ErrorContext(c.Request.Context(), err.Error())
 			c.Status(http.StatusNotFound)
 			return
 		}
