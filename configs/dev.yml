@@ -15,6 +15,9 @@ consumers:
   feed:
     topic: "feed_cache_commands"
 
+grpc_clients:
+  dialogue_service_addr: "dialogue-service-backend:8084"
+
 database:
   host: "social-network-service-haproxy"
   master_port: 15432

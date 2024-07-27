@@ -56,7 +56,7 @@ func Run() {
 	userFriendRepository := repository.NewUserFriendRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
 
-	grpcClient, err := grpc.NewClient("localhost:8084", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcClient, err := grpc.NewClient(cfg.GrpcClients.DialogueServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		panic(err)

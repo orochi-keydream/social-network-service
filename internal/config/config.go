@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	KafkaBrokers    []string              `yaml:"kafka_brokers"`
-	Producers       ProducerConfigs       `yaml:"producers"`
-	Consumers       ConsumerConfigs       `yaml:"consumers"`
-	Database        DatabaseConfig        `yaml:"database"`
-	Redis           RedisConfig           `yaml:"redis"`
+	KafkaBrokers []string        `yaml:"kafka_brokers"`
+	Producers    ProducerConfigs `yaml:"producers"`
+	Consumers    ConsumerConfigs `yaml:"consumers"`
+	GrpcClients  GrpcClients     `yaml:"grpc_clients"`
+	Database     DatabaseConfig  `yaml:"database"`
+	Redis        RedisConfig     `yaml:"redis"`
 }
 
 type ProducerConfigs struct {
@@ -30,6 +31,10 @@ type ConsumerConfigs struct {
 
 type ConsumerConfig struct {
 	Topic string `yaml:"topic"`
+}
+
+type GrpcClients struct {
+	DialogueServiceAddr string `yaml:"dialogue_service_addr"`
 }
 
 type DatabaseConfig struct {
