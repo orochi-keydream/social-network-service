@@ -19,8 +19,8 @@ type AppServiceConfiguration struct {
 	UserRepository        IUserRepository
 	UserAccountRepository IUserAccountRepository
 	UserFriendRepository  IUserFriendRepository
-	DialogRepository      IDialogRepository
 	PostRepository        IPostRepository
+	DialogueServiceClient IDialogueServiceClient
 	FeedCache             IFeedCache
 	FeedCacheNotifier     IFeedCacheNotifier
 	PostEventNotifier     IPostEventNotifier
@@ -33,8 +33,8 @@ type AppService struct {
 	userRepository        IUserRepository
 	userAccountRepository IUserAccountRepository
 	userFriendRepository  IUserFriendRepository
-	dialogRepository      IDialogRepository
 	postRepository        IPostRepository
+	dialogServiceClient   IDialogueServiceClient
 	feedCache             IFeedCache
 	cacheNotifier         IFeedCacheNotifier
 	postEventNotifier     IPostEventNotifier
@@ -48,8 +48,8 @@ func NewAppService(cfg *AppServiceConfiguration) *AppService {
 		userRepository:        cfg.UserRepository,
 		userAccountRepository: cfg.UserAccountRepository,
 		userFriendRepository:  cfg.UserFriendRepository,
-		dialogRepository:      cfg.DialogRepository,
 		postRepository:        cfg.PostRepository,
+		dialogServiceClient:   cfg.DialogueServiceClient,
 		feedCache:             cfg.FeedCache,
 		cacheNotifier:         cfg.FeedCacheNotifier,
 		postEventNotifier:     cfg.PostEventNotifier,
@@ -106,10 +106,6 @@ func (s *AppService) RegisterUser(ctx context.Context, cu *model.RegisterUserCom
 	}
 
 	defer s.transactionManager.Rollback(tx)
-
-	if err != nil {
-		return "", err
-	}
 
 	err = s.userAccountRepository.Add(ctx, account, tx)
 
@@ -252,7 +248,6 @@ func (s *AppService) SearchUsers(ctx context.Context, firstName string, secondNa
 }
 
 func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageCommand) error {
-	// TODO: Think about using a transaction.
 	_, err := s.userRepository.Get(ctx, cmd.FromUserId, nil)
 
 	if err != nil {
@@ -275,17 +270,7 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 		}
 	}
 
-	chatId := s.buildChatId(cmd.FromUserId, cmd.ToUserId)
-
-	msg := &model.Message{
-		ChatId:     chatId,
-		FromUserId: cmd.FromUserId,
-		ToUserId:   cmd.ToUserId,
-		Text:       cmd.Text,
-		SentAt:     time.Now().UTC(),
-	}
-
-	_, err = s.dialogRepository.AddMessage(ctx, msg, nil)
+	err = s.dialogServiceClient.SendMessage(ctx, cmd.FromUserId, cmd.ToUserId, cmd.Text)
 
 	if err != nil {
 		return err
@@ -295,11 +280,7 @@ func (s *AppService) SendMessage(ctx context.Context, cmd model.SendMessageComma
 }
 
 func (s *AppService) GetMessages(ctx context.Context, cmd model.GetMessagesCommand) ([]*model.Message, error) {
-	var messages []*model.Message
-	var err error
-
-	chatId := s.buildChatId(cmd.FromUserId, cmd.ToUserId)
-	messages, err = s.dialogRepository.GetMessages(ctx, chatId, nil)
+	messages, err := s.dialogServiceClient.GetMessages(ctx, cmd.FromUserId, cmd.ToUserId)
 
 	if err != nil {
 		return nil, err
@@ -647,12 +628,4 @@ func (s *AppService) RecreateFeedCache(cmd model.RecreateFeedCacheCommand) error
 	err = s.feedCache.RecreateFeed(cmd.UserId, posts)
 
 	return err
-}
-
-func (s *AppService) buildChatId(firstUser, secondUser model.UserId) model.ChatId {
-	if firstUser > secondUser {
-		return model.ChatId(fmt.Sprintf("%s_%s", secondUser, firstUser))
-	} else {
-		return model.ChatId(fmt.Sprintf("%s_%s", firstUser, secondUser))
-	}
 }

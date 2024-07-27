@@ -43,9 +43,6 @@ type RegisterUserCommand struct {
 }
 
 type Message struct {
-	MessageId  MessageId
-	ChatId     ChatId
-	SentAt     time.Time
 	FromUserId UserId
 	ToUserId   UserId
 	Text       string

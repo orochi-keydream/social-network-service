@@ -2,9 +2,8 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,22 +13,27 @@ import (
 	"social-network-service/internal/api/post"
 	"social-network-service/internal/api/user"
 	"social-network-service/internal/cache"
+	"social-network-service/internal/client"
 	"social-network-service/internal/config"
 	"social-network-service/internal/database"
+	"social-network-service/internal/grpc/dialogue"
+	"social-network-service/internal/interceptor"
 	"social-network-service/internal/kafka/consumer"
 	"social-network-service/internal/kafka/producer"
+	"social-network-service/internal/log"
 	"social-network-service/internal/middleware"
 	"social-network-service/internal/repository"
 	"social-network-service/internal/service"
 	"social-network-service/internal/ws"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -45,8 +49,9 @@ func Run() {
 
 	cfg := config.LoadConfig()
 
+	addLogger()
+
 	cf := createConnectionFactory(cfg)
-	shardedDbConn := createShardedConnection(cfg.ShardedDatabase)
 
 	tm := database.NewTransactionManager(cf)
 
@@ -55,7 +60,19 @@ func Run() {
 	userFriendRepository := repository.NewUserFriendRepository(cf)
 	postRepository := repository.NewPostRepository(cf)
 
-	dialogRepository := repository.NewDialogRepository(shardedDbConn)
+	grpcClient, err := grpc.NewClient(
+		cfg.GrpcClients.DialogueServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.RequestIdInterceptor),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	dialogueGrpcClient := dialogue.NewDialogueServiceClient(grpcClient)
+
+	dialogueClient := client.NewDialogueClient(dialogueGrpcClient)
 
 	jwtService := service.NewJwtService()
 
@@ -88,8 +105,8 @@ func Run() {
 		UserRepository:        userRepository,
 		UserAccountRepository: userAccountRepository,
 		UserFriendRepository:  userFriendRepository,
-		DialogRepository:      dialogRepository,
 		PostRepository:        postRepository,
+		DialogueServiceClient: dialogueClient,
 		FeedCache:             feedCache,
 		FeedCacheNotifier:     feedCacheNotifier,
 		PostEventNotifier:     postEventNotifier,
@@ -102,11 +119,16 @@ func Run() {
 	go wsHub.Run(ctx)
 	go userNotifier.Subscribe(ctx)
 
-	engine := gin.Default()
+	engine := gin.New()
+	engine.Use(gin.Recovery())
 
+	requestIdMiddleware := middleware.NewRequestIdMiddleware()
+	loggingMiddleware := middleware.NewLoggingMiddleware()
 	errorHandlingMiddleware := middleware.NewErrorHandlingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
+	engine.Use(requestIdMiddleware)
+	engine.Use(loggingMiddleware)
 	engine.Use(errorHandlingMiddleware)
 
 	account.RegisterAccountEndpoints(appService, engine)
@@ -149,16 +171,23 @@ func Run() {
 
 	select {
 	case <-sigint:
-		log.Println("SIGTERM received, graceful shutdown started")
+		slog.Info("SIGINT received, graceful shutdown started")
 		cancel()
 	case <-sigterm:
-		log.Println("SIGTERM received, graceful shutdown started")
+		slog.Info("SIGTERM received, graceful shutdown started")
 		cancel()
 	}
 
 	wg.Wait()
 
-	log.Println("graceful shutdown finished, have a nice day")
+	slog.Info("graceful shutdown finished, have a nice day")
+}
+
+func addLogger() {
+	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
+	contextHandler := log.NewContextHandler(jsonHandler)
+	logger := slog.New(contextHandler)
+	slog.SetDefault(logger)
 }
 
 func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
@@ -191,36 +220,4 @@ func createConnectionFactory(cfg config.Config) *database.ConnectionFactory {
 	}
 
 	return database.NewConnectionFactory(cfCfg)
-}
-
-func createShardedConnection(cfg config.ShardedDatabaseConfig) *sql.DB {
-	ctx := context.Background()
-
-	const driver = "pgx"
-
-	connStr := fmt.Sprintf(
-		"host=%v port=%v user=%v password=%v dbname=%v",
-		cfg.Host,
-		cfg.Port,
-		cfg.User,
-		cfg.Password,
-		cfg.DatabaseName)
-
-	conn, err := sql.Open(driver, connStr)
-
-	if err != nil {
-		panic(err)
-	}
-
-	conn.SetMaxOpenConns(10)
-	conn.SetMaxIdleConns(10)
-	conn.SetConnMaxLifetime(time.Minute * 5)
-
-	err = conn.PingContext(ctx)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return conn
 }

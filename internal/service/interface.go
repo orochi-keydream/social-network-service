@@ -19,9 +19,9 @@ type IUserAccountRepository interface {
 	Get(ctx context.Context, userId model.UserId, tx *sql.Tx) (*model.UserAccount, error)
 }
 
-type IDialogRepository interface {
-	AddMessage(ctx context.Context, msg *model.Message, tx *sql.Tx) (model.MessageId, error)
-	GetMessages(ctx context.Context, chatId model.ChatId, tx *sql.Tx) ([]*model.Message, error)
+type IDialogueServiceClient interface {
+	SendMessage(ctx context.Context, fromUserId model.UserId, toUserId model.UserId, text string) error
+	GetMessages(ctx context.Context, fromUserId model.UserId, toUserId model.UserId) ([]*model.Message, error)
 }
 
 type IPostRepository interface {

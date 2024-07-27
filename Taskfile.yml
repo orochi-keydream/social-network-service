@@ -4,7 +4,12 @@ tasks:
   run:
     desc: Run the service
     cmds:
-      - go run ./cmd/app/main.go {{.CLI_ARGS}}
+      - go run ./cmd/app/main.go --config ./configs/local.yml
+
+  gen-pb:
+    desc: Generate *.pb.go files
+    cmds:
+      - protoc --proto_path ./proto --go_out ./internal/grpc/dialogue/ --go_opt paths=source_relative --go-grpc_out ./internal/grpc/dialogue/ --go-grpc_opt paths=source_relative ./proto/dialogue.proto
 
   gen-profiles:
     desc: Generate random profiles
@@ -48,22 +53,12 @@ tasks:
   migrate-up:
     desc: Migrate database up
     cmds:
-      - goose -dir ./migrations/social_network_db/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
+      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" up
 
   migrate-down:
     desc: Migrate database down
     cmds:
-      - goose -dir ./migrations/social_network_db/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" down
-
-  migrate-shards-up:
-    desc: Migrate sharded database up
-    cmds:
-      - goose -dir ./migrations/dialogues_db/ postgres "host=localhost port=5432 user=postgres dbname=postgres" up
-
-  migrate-shards-down:
-    desc: Migrate sharded database down
-    cmds:
-      - goose -dir ./migrations/dialogues_db/ postgres "host=localhost port=5432 user=postgres dbname=postgres" down
+      - goose -dir ./migrations/ postgres "host=localhost port=15432 user=postgres password=123 dbname=social_network_db" down
 
   gen-swag:
     desc: Generate Swagger
