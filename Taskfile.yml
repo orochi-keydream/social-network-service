@@ -4,7 +4,7 @@ tasks:
   run:
     desc: Run the service
     cmds:
-      - go run ./cmd/app/main.go {{.CLI_ARGS}}
+      - go run ./cmd/app/main.go --config ./configs/local.yml
 
   gen-pb:
     desc: Generate *.pb.go files
