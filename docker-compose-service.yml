@@ -1,16 +1,21 @@
 networks:
   social-network-service-nw:
+    name: social-network-service-nw
+    driver: bridge
+  interservice-nw:
+    name: interservice-nw
     driver: bridge
 
 services:
   backend:
-    container_name: backend
-    image: social-network-service:0.1.0
+    container_name: social-network-service-backend
+    image: social-network-service:0.2.0
     build:
       context: ./
       dockerfile: service.Dockerfile
     networks:
       - social-network-service-nw
+      - interservice-nw
     ports:
       - "8080:8080"
       - "8081:8081"
