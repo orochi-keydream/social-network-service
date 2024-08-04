@@ -21,7 +21,7 @@
 go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
-`goose` can also be installed using `brew` (for MacOS):
+`goose` can also be installed using `brew` (for macOS):
 
 ```bash
 brew install goose
@@ -111,9 +111,9 @@ docker compose -f ./docker-compose-service.yml up -d
 
 ## 4 Explore the functionality
 
-Open http://localhost:8080/swagger/index.html to work with the service via Swagger.
+Open http://localhost:8080/swagger/index.html (if you run the system locally) or http://localhost/api/swagger/index.html (if you run the system using Docker) to work with the service via Swagger.
 
-Register a new user profile using `POST /user/register` endpoint with the folowing body:
+Register a new user profile using `POST /user/register` endpoint with the following body:
 
 ```json
 {
