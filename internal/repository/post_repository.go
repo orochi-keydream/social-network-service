@@ -151,7 +151,7 @@ func (r *PostRepository) AddPost(ctx context.Context, post *model.Post, tx *sql.
 	}
 
 	// TODO: Extract it to an interface.
-	metric.IncCreatePostSuccessfull()
+	metric.IncCreatePostSuccessful()
 
 	return nil
 }

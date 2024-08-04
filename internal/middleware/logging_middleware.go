@@ -30,6 +30,10 @@ func NewLoggingMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
+		for _, e := range c.Errors {
+			slog.ErrorContext(ctx, fmt.Sprintf("Got an error: %s", e.Error()))
+		}
+
 		slog.InfoContext(
 			ctx,
 			fmt.Sprintf(

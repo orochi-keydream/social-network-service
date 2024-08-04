@@ -2,8 +2,6 @@ package interceptor
 
 import (
 	"context"
-	"fmt"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -35,8 +33,6 @@ func RequestIdInterceptor(
 	}
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	fmt.Println(md.Get(requestIdKey)[0])
 
 	return invoker(ctx, method, req, reply, cc, opts...)
 }

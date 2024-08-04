@@ -10,33 +10,15 @@ var createPostAttempts = promauto.NewCounter(prometheus.CounterOpts{
 	Help: "Number of attempts to create post",
 })
 
-var createPostSuccessfull = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "create_post_successfull",
+var createPostSuccessful = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "create_post_successful",
 	Help: "Number of created posts",
-})
-
-var getMessagesErrors = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "read_messages_errors",
-	Help: "Number of errors when reading messages from database",
-})
-
-var addMessageErrors = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "send_message_errors",
-	Help: "Number of errors when writing messages to database",
 })
 
 func IncCreatePostAttempts() {
 	createPostAttempts.Inc()
 }
 
-func IncCreatePostSuccessfull() {
-	createPostSuccessfull.Inc()
-}
-
-func IncGetMessagesErrors() {
-	getMessagesErrors.Inc()
-}
-
-func IncAddMessageErrors() {
-	addMessageErrors.Inc()
+func IncCreatePostSuccessful() {
+	createPostSuccessful.Inc()
 }

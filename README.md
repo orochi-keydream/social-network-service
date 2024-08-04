@@ -46,10 +46,8 @@ docker compose -f ./docker-compose-infra.yml up -d
 Using http://localhost:7000/, determine which PostgreSQL node is master and run the following commands (replace `sosical-network-service-postgres0` if needed).
 
 ```bash
-docker exec -it sosical-network-service-postgres0 bash
-psql -U postgres
+docker exec -it social-network-service-postgres0 psql -U postgres
 create database social_network_db;
-exit
 ```
 
 #### Step 4 - Configure Patroni cluster
@@ -57,7 +55,7 @@ exit
 Staying inside the container, run the command below to change Patroni configuration.
 
 ```bash
-patronictl edit-config
+docker exec -it social-network-service-postgres0 patronictl edit-config
 ```
 
 Add the following line at the end of the configuration file.
