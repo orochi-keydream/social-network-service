@@ -1,38 +1,36 @@
-kafka_brokers:
-  - localhost:9091
-  - localhost:9092
-  - localhost:9093
+service:
+  http_port: 8080
+  websocket_port: 8081
+  metrics_port: 2112
 
-producers:
-  posts:
-    topic: "post_events"
-  feed:
-    topic: "feed_cache_commands"
-
-consumers:
-  posts:
-    topic: "post_events"
-  feed:
-    topic: "feed_cache_commands"
-
-grpc_clients:
-  dialogue_service_addr: "localhost:8084"
+kafka:
+  brokers:
+    - localhost:9091
+    - localhost:9092
+    - localhost:9093
+  producers:
+    posts:
+      topic: "post_events"
+    feed:
+      topic: "feed_cache_commands"
+  consumers:
+    posts:
+      topic: "post_events"
+    feed:
+      topic: "feed_cache_commands"
 
 database:
   host: "localhost"
   master_port: 15432
-  sync_port: 25432
-  async_port: 35432
+  sync_port: 15433
+  async_port: 15434
   dbname: "social_network_db"
   user: "postgres"
   password: "123"
 
-sharded_database:
-  host: "localhost"
-  port: 5432
-  dbname: "postgres"
-  user: "postgres"
-  password: ""
-
 redis:
-  connection_string: "localhost:6379"
+  connection_string: "localhost:16379"
+
+grpc_clients:
+  dialogue_service_addr: "localhost:28084"
+  counter_service_addr: "localhost:38084"
