@@ -10,6 +10,7 @@ tasks:
     desc: Generate *.pb.go files
     cmds:
       - protoc --proto_path ./proto --go_out ./internal/grpc/dialogue/ --go_opt paths=source_relative --go-grpc_out ./internal/grpc/dialogue/ --go-grpc_opt paths=source_relative ./proto/dialogue.proto
+      - protoc --proto_path ./proto --go_out ./internal/grpc/counter/ --go_opt paths=source_relative --go-grpc_out ./internal/grpc/counter/ --go-grpc_opt paths=source_relative ./proto/counter.proto
 
   gen-profiles:
     desc: Generate random profiles
