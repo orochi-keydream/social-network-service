@@ -30,6 +30,9 @@ type PostService interface {
 type DialogService interface {
 	GetMessages(ctx context.Context, cmd model.GetMessagesCommand) ([]*model.Message, error)
 	SendMessage(ctx context.Context, cmd model.SendMessageCommand) error
+	NewGetUnreadCountTotal(ctx context.Context, cmd model.NewGetUnreadCountTotalCommand) (int, error)
+	NewGetUnreadCount(ctx context.Context, cmd model.NewGetUnreadCountCommand) (int, error)
+	MarkMessagesAsRead(ctx context.Context, cmd model.MarkMessagesAsReadCommand) error
 }
 
 type JwtService interface {

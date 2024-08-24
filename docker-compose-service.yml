@@ -10,10 +10,13 @@ networks:
   proxy-nw:
     name: proxy-nw
     driver: bridge
+  kafka-nw:
+    name: kafka-nw
+    driver: bridge
 
 services:
   backend:
-    image: social-network-service:0.3.0
+    image: social-network-service:0.4.0
     build:
       context: ./
       dockerfile: service.Dockerfile
@@ -23,6 +26,7 @@ services:
       - social-network-service-nw
       - interservice-nw
       - proxy-nw
+      - kafka-nw
     # ports:
     #   - "8080:8080"
     #   - "8081:8081"

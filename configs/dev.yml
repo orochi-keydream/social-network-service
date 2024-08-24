@@ -1,22 +1,23 @@
-kafka_brokers:
-  - social-network-service-kafka1:29091
-  - social-network-service-kafka2:29092
-  - social-network-service-kafka3:29093
+service:
+  http_port: 8080
+  websocket_port: 8081
+  metrics_port: 2112
 
-producers:
-  posts:
-    topic: "post_events"
-  feed:
-    topic: "feed_cache_commands"
-
-consumers:
-  posts:
-    topic: "post_events"
-  feed:
-    topic: "feed_cache_commands"
-
-grpc_clients:
-  dialogue_service_addr: "dialogue-service-backend:8084"
+kafka:
+  brokers:
+    - kafka1:29091
+    - kafka2:29092
+    - kafka3:29093
+  producers:
+    posts:
+      topic: "post_events"
+    feed:
+      topic: "feed_cache_commands"
+  consumers:
+    posts:
+      topic: "post_events"
+    feed:
+      topic: "feed_cache_commands"
 
 database:
   host: "social-network-service-haproxy"
@@ -27,12 +28,9 @@ database:
   user: "postgres"
   password: "123"
 
-sharded_database:
-  host: "social-network-service-master"
-  port: 5432
-  dbname: "postgres"
-  user: "postgres"
-  password: ""
-
 redis:
   connection_string: "social-network-service-redis:6379"
+
+grpc_clients:
+  dialogue_service_addr: "dialogue-service-backend:8084"
+  counter_service_addr: "counter-service-backend:8084"

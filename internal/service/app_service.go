@@ -21,6 +21,7 @@ type AppServiceConfiguration struct {
 	UserFriendRepository  IUserFriendRepository
 	PostRepository        IPostRepository
 	DialogueServiceClient IDialogueServiceClient
+	CounterServiceClient  ICounterServiceClient
 	FeedCache             IFeedCache
 	FeedCacheNotifier     IFeedCacheNotifier
 	PostEventNotifier     IPostEventNotifier
@@ -34,12 +35,15 @@ type AppService struct {
 	userAccountRepository IUserAccountRepository
 	userFriendRepository  IUserFriendRepository
 	postRepository        IPostRepository
-	dialogServiceClient   IDialogueServiceClient
-	feedCache             IFeedCache
-	cacheNotifier         IFeedCacheNotifier
-	postEventNotifier     IPostEventNotifier
-	userNotifier          IUserNotifier
-	transactionManager    ITransactionManager
+
+	dialogServiceClient  IDialogueServiceClient
+	counterServiceClient ICounterServiceClient
+
+	feedCache          IFeedCache
+	cacheNotifier      IFeedCacheNotifier
+	postEventNotifier  IPostEventNotifier
+	userNotifier       IUserNotifier
+	transactionManager ITransactionManager
 }
 
 func NewAppService(cfg *AppServiceConfiguration) *AppService {
@@ -50,6 +54,7 @@ func NewAppService(cfg *AppServiceConfiguration) *AppService {
 		userFriendRepository:  cfg.UserFriendRepository,
 		postRepository:        cfg.PostRepository,
 		dialogServiceClient:   cfg.DialogueServiceClient,
+		counterServiceClient:  cfg.CounterServiceClient,
 		feedCache:             cfg.FeedCache,
 		cacheNotifier:         cfg.FeedCacheNotifier,
 		postEventNotifier:     cfg.PostEventNotifier,
@@ -466,8 +471,6 @@ func (s *AppService) AddFriend(ctx context.Context, userId model.UserId, friendU
 		return err
 	}
 
-	// TODO: Consider using outbox.
-
 	err = s.cacheNotifier.PublishRecreateFeedMessage(user.UserId)
 
 	return err
@@ -628,4 +631,28 @@ func (s *AppService) RecreateFeedCache(cmd model.RecreateFeedCacheCommand) error
 	err = s.feedCache.RecreateFeed(cmd.UserId, posts)
 
 	return err
+}
+
+func (s *AppService) NewGetUnreadCountTotal(ctx context.Context, cmd model.NewGetUnreadCountTotalCommand) (int, error) {
+	count, err := s.counterServiceClient.GetUnreadCountTotal(ctx, cmd.UserId)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (s *AppService) NewGetUnreadCount(ctx context.Context, cmd model.NewGetUnreadCountCommand) (int, error) {
+	count, err := s.counterServiceClient.GetUnreadCount(ctx, cmd.CurrentUserId, cmd.ChatUserId)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (s *AppService) MarkMessagesAsRead(ctx context.Context, cmd model.MarkMessagesAsReadCommand) error {
+	return s.counterServiceClient.MarkMessagesAsRead(ctx, cmd.UserId, cmd.MessageIds)
 }

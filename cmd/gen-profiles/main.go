@@ -55,8 +55,8 @@ func main() {
 
 	cfCfg := database.ConnectionFactoryConfig{
 		MasterConnectionString: "host=localhost port=15432 user=postgres password=123 dbname=social_network_db",
-		SyncConnectionString:   "host=localhost port=25432 user=postgres password=123 dbname=social_network_db",
-		AsyncConnectionString:  "host=localhost port=35432 user=postgres password=123 dbname=social_network_db",
+		SyncConnectionString:   "host=localhost port=15433 user=postgres password=123 dbname=social_network_db",
+		AsyncConnectionString:  "host=localhost port=15434 user=postgres password=123 dbname=social_network_db",
 	}
 
 	cf := database.NewConnectionFactory(cfCfg)

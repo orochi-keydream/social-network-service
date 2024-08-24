@@ -16,6 +16,7 @@ import (
 	"social-network-service/internal/client"
 	"social-network-service/internal/config"
 	"social-network-service/internal/database"
+	"social-network-service/internal/grpc/counter"
 	"social-network-service/internal/grpc/dialogue"
 	"social-network-service/internal/interceptor"
 	"social-network-service/internal/kafka/consumer"
@@ -51,38 +52,36 @@ func Run() {
 
 	addLogger()
 
-	cf := createConnectionFactory(cfg)
+	connectionFactory := createConnectionFactory(cfg)
 
-	tm := database.NewTransactionManager(cf)
+	tm := database.NewTransactionManager(connectionFactory)
 
-	userRepository := repository.NewUserRepository(cf)
-	userAccountRepository := repository.NewUserAccountRepository(cf)
-	userFriendRepository := repository.NewUserFriendRepository(cf)
-	postRepository := repository.NewPostRepository(cf)
+	userRepository := repository.NewUserRepository(connectionFactory)
+	userAccountRepository := repository.NewUserAccountRepository(connectionFactory)
+	userFriendRepository := repository.NewUserFriendRepository(connectionFactory)
+	postRepository := repository.NewPostRepository(connectionFactory)
 
-	grpcClient, err := grpc.NewClient(
-		cfg.GrpcClients.DialogueServiceAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(interceptor.RequestIdInterceptor),
-	)
+	dialogueClient, err := createDialogueClient(cfg)
 
 	if err != nil {
 		panic(err)
 	}
 
-	dialogueGrpcClient := dialogue.NewDialogueServiceClient(grpcClient)
+	counterClient, err := createCounterClient(cfg)
 
-	dialogueClient := client.NewDialogueClient(dialogueGrpcClient)
+	if err != nil {
+		panic(err)
+	}
 
 	jwtService := service.NewJwtService()
 
-	feedCacheNotifier, err := producer.NewFeedCommandProducer(cfg.KafkaBrokers, cfg.Producers.Feed.Topic)
+	feedCacheNotifier, err := producer.NewFeedCommandProducer(cfg.Kafka.Brokers, cfg.Kafka.Producers.Feed.Topic)
 
 	if err != nil {
 		panic(err)
 	}
 
-	postEventNotifier, err := producer.NewPostEventProducer(cfg.KafkaBrokers, cfg.Producers.Posts.Topic)
+	postEventNotifier, err := producer.NewPostEventProducer(cfg.Kafka.Brokers, cfg.Kafka.Producers.Posts.Topic)
 
 	if err != nil {
 		panic(err)
@@ -107,6 +106,7 @@ func Run() {
 		UserFriendRepository:  userFriendRepository,
 		PostRepository:        postRepository,
 		DialogueServiceClient: dialogueClient,
+		CounterServiceClient:  counterClient,
 		FeedCache:             feedCache,
 		FeedCacheNotifier:     feedCacheNotifier,
 		PostEventNotifier:     postEventNotifier,
@@ -140,27 +140,51 @@ func Run() {
 
 	wg := new(sync.WaitGroup)
 
-	feecCommandConsumer := consumer.NewFeedCommandConsumer(appService)
+	feedCommandConsumer := consumer.NewFeedCommandConsumer(appService)
 	postEventConsumer := consumer.NewPostEventConsumer(appService)
 
+	wg.Add(1)
+
 	// TODO: Consider using only one consumer to consume messages from both topics.
-	wg.Add(2)
-	consumer.UseFeedCommandConsumer(ctx, cfg.KafkaBrokers, cfg.Consumers.Feed.Topic, feecCommandConsumer, wg)
-	consumer.UsePostEventConsumer(ctx, cfg.KafkaBrokers, cfg.Consumers.Posts.Topic, postEventConsumer, wg)
+	err = consumer.UseFeedCommandConsumer(
+		ctx,
+		cfg.Kafka.Brokers,
+		cfg.Kafka.Consumers.Feed.Topic,
+		feedCommandConsumer,
+		wg,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	wg.Add(1)
+
+	err = consumer.UsePostEventConsumer(
+		ctx,
+		cfg.Kafka.Brokers,
+		cfg.Kafka.Consumers.Posts.Topic,
+		postEventConsumer,
+		wg,
+	)
+
+	if err != nil {
+		panic(err)
+	}
 
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":2112", nil)
+		_ = http.ListenAndServe(fmt.Sprintf(":%d", cfg.Service.MetricsPort), nil)
 	}()
 
 	go func() {
-		engine.Run(":8080")
+		_ = engine.Run(fmt.Sprintf(":%d", cfg.Service.HttpPort))
 	}()
 
 	go func() {
 		hubMux := http.NewServeMux()
 		hubMux.Handle("/hub", ws.HandleHub(wsHub, jwtService))
-		http.ListenAndServe(":8081", hubMux)
+		_ = http.ListenAndServe(fmt.Sprintf(":%d", cfg.Service.WebSocketPort), hubMux)
 	}()
 
 	sigint := make(chan os.Signal, 1)
@@ -181,6 +205,40 @@ func Run() {
 	wg.Wait()
 
 	slog.Info("graceful shutdown finished, have a nice day")
+}
+
+func createDialogueClient(cfg config.Config) (*client.DialogueClient, error) {
+	grpcClient, err := grpc.NewClient(
+		cfg.GrpcClients.DialogueServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.RequestIdInterceptor),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dialogueGrpcClient := dialogue.NewDialogueServiceClient(grpcClient)
+	dialogueClient := client.NewDialogueClient(dialogueGrpcClient)
+
+	return dialogueClient, nil
+}
+
+func createCounterClient(cfg config.Config) (*client.CounterClient, error) {
+	grpcClient, err := grpc.NewClient(
+		cfg.GrpcClients.CounterServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.RequestIdInterceptor),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	counterGrpcClient := counter.NewCounterServiceClient(grpcClient)
+	counterClient := client.NewCounterClient(counterGrpcClient)
+
+	return counterClient, nil
 }
 
 func addLogger() {

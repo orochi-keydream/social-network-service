@@ -43,6 +43,7 @@ type RegisterUserCommand struct {
 }
 
 type Message struct {
+	MessageId  MessageId
 	FromUserId UserId
 	ToUserId   UserId
 	Text       string
@@ -107,4 +108,18 @@ type DeletePostFromFeedCacheCommand struct {
 
 type RecreateFeedCacheCommand struct {
 	UserId UserId
+}
+
+type NewGetUnreadCountTotalCommand struct {
+	UserId UserId
+}
+
+type NewGetUnreadCountCommand struct {
+	CurrentUserId UserId
+	ChatUserId    UserId
+}
+
+type MarkMessagesAsReadCommand struct {
+	UserId     UserId
+	MessageIds []MessageId
 }

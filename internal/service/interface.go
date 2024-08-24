@@ -73,3 +73,8 @@ type IUserNotifier interface {
 	NotifyNewPostAppeared(ctx context.Context, userId model.UserId, post *model.Post) error
 	NotifyPostUpdated(ctx context.Context, userId model.UserId, post *model.Post) error
 }
+type ICounterServiceClient interface {
+	GetUnreadCountTotal(ctx context.Context, userId model.UserId) (int, error)
+	GetUnreadCount(ctx context.Context, currentUserId model.UserId, chatUserId model.UserId) (int, error)
+	MarkMessagesAsRead(ctx context.Context, userId model.UserId, messageIds []model.MessageId) error
+}

@@ -40,16 +40,17 @@ func (c *DialogueClient) GetMessages(ctx context.Context, fromUserId model.UserI
 		return nil, err
 	}
 
-	messages := make([]*model.Message, 0, len(resp.Messages))
+	messages := make([]*model.Message, len(resp.Messages))
 
-	for _, msg := range resp.Messages {
+	for i, msg := range resp.Messages {
 		message := &model.Message{
+			MessageId:  model.MessageId(msg.MessageId),
 			FromUserId: model.UserId(msg.FromUserId),
 			ToUserId:   model.UserId(msg.ToUserId),
 			Text:       msg.Text,
 		}
 
-		messages = append(messages, message)
+		messages[i] = message
 	}
 
 	return messages, nil

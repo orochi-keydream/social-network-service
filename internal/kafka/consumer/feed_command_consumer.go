@@ -22,7 +22,7 @@ func UseFeedCommandConsumer(ctx context.Context, addrs []string, topic string, c
 	cg, err := sarama.NewConsumerGroup(addrs, "social-network-service", cfg)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	topics := []string{topic}
