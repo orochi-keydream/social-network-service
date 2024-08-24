@@ -6,6 +6,9 @@ type GetMessagesResponse struct {
 }
 
 type GetMessagesResponseItem struct {
+	// ID of the message.
+	MessageId int64 `json:"messageId"`
+
 	// ID of the message sender in UUIDv4 format.
 	From string `json:"from"`
 

@@ -43,6 +43,7 @@ type RegisterUserCommand struct {
 }
 
 type Message struct {
+	MessageId  MessageId
 	FromUserId UserId
 	ToUserId   UserId
 	Text       string

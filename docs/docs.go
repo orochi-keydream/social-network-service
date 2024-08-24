@@ -751,6 +751,10 @@ const docTemplate = `{
                     "description": "ID of the message sender in UUIDv4 format.",
                     "type": "string"
                 },
+                "messageId": {
+                    "description": "ID of the message.",
+                    "type": "integer"
+                },
                 "text": {
                     "description": "Content of the message.",
                     "type": "string"
