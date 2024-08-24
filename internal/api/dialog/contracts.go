@@ -23,3 +23,15 @@ type SendMessageRequest struct {
 	// Content of the message.
 	Text string `json:"text" binding:"required"`
 }
+
+type NewGetUnreadCountTotalResponse struct {
+	Count int `json:"count"`
+}
+
+type NewGetUnreadCountResponse struct {
+	Count int `json:"count"`
+}
+
+type MarkMessagesAsReadRequest struct {
+	MessageIds []int64 `json:"messageIds"`
+}

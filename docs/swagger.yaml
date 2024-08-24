@@ -97,6 +97,23 @@ definitions:
         description: ID of the message recipient in UUIDv4 format.
         type: string
     type: object
+  dialog.MarkMessagesAsReadRequest:
+    properties:
+      messageIds:
+        items:
+          type: integer
+        type: array
+    type: object
+  dialog.NewGetUnreadCountResponse:
+    properties:
+      count:
+        type: integer
+    type: object
+  dialog.NewGetUnreadCountTotalResponse:
+    properties:
+      count:
+        type: integer
+    type: object
   dialog.SendMessageRequest:
     properties:
       text:
@@ -302,6 +319,85 @@ paths:
       security:
       - bearer: []
       summary: Sends a message.
+      tags:
+      - Dialog
+  /dialog/{id}/unread/count:
+    get:
+      parameters:
+      - description: ' '
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dialog.NewGetUnreadCountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns number of unread messages in a specified chat.
+      tags:
+      - Dialog
+  /dialog/{id}/unread/read:
+    post:
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dialog.MarkMessagesAsReadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns number of unread messages in a specified chat.
+      tags:
+      - Dialog
+  /dialog/unread/count:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dialog.NewGetUnreadCountTotalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - bearer: []
+      summary: Returns total number of unread messages.
       tags:
       - Dialog
   /friend/delete/{id}:

@@ -7,12 +7,23 @@ import (
 )
 
 type Config struct {
-	KafkaBrokers []string        `yaml:"kafka_brokers"`
-	Producers    ProducerConfigs `yaml:"producers"`
-	Consumers    ConsumerConfigs `yaml:"consumers"`
-	GrpcClients  GrpcClients     `yaml:"grpc_clients"`
-	Database     DatabaseConfig  `yaml:"database"`
-	Redis        RedisConfig     `yaml:"redis"`
+	Service     ServiceConfig  `yaml:"service"`
+	Kafka       KafkaConfig    `yaml:"kafka"`
+	Database    DatabaseConfig `yaml:"database"`
+	Redis       RedisConfig    `yaml:"redis"`
+	GrpcClients GrpcClients    `yaml:"grpc_clients"`
+}
+
+type ServiceConfig struct {
+	HttpPort      int `yaml:"http_port"`
+	MetricsPort   int `yaml:"metrics_port"`
+	WebSocketPort int `yaml:"websocket_port"`
+}
+
+type KafkaConfig struct {
+	Brokers   []string        `yaml:"brokers"`
+	Producers ProducerConfigs `yaml:"producers"`
+	Consumers ConsumerConfigs `yaml:"consumers"`
 }
 
 type ProducerConfigs struct {
@@ -35,6 +46,7 @@ type ConsumerConfig struct {
 
 type GrpcClients struct {
 	DialogueServiceAddr string `yaml:"dialogue_service_addr"`
+	CounterServiceAddr  string `yaml:"counter_service_addr"`
 }
 
 type DatabaseConfig struct {
