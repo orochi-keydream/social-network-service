@@ -31,7 +31,11 @@ brew install goose
 
 #### Step 1 - Run dependencies
 
-Go to [dialogue-service repository](https://github.com/orochi-keydream/dialogue-service/tree/main) and perform all steps in sections [2 Prepare the environment](https://github.com/orochi-keydream/dialogue-service/blob/main/README.md#2-prepare-the-environment) and [3 Run the service](https://github.com/orochi-keydream/dialogue-service/blob/main/README.md#3-run-the-service).
+Go to [counter-service](https://github.com/orochi-keydream/counter-service) and [dialogue-service](https://github.com/orochi-keydream/dialogue-service/tree/main) and perform all steps in sections _2 Prepare the environment_ and _3 Run the service_.
+
+> NOTE
+>
+> `counter-service`'s docker compose file contains Kafka cluster definition which is also used by `dialogue-service`. It is recommended to startup `counter-service` first.
 
 #### Step 2 - Up containers
 
